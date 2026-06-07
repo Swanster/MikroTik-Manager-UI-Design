@@ -428,113 +428,51 @@ export async function fetchDashboard(deviceId?: string): Promise<ApiResponse<Das
 }
 
 // ============================================================
-// Logs Data
+// Logs Data — per-device
 // ============================================================
 
-const LOG_ENTRIES = [
-  {
-    id: 1, time: "14:32:01.442", level: "info" as const, topic: "dhcp",
-    message: "assigned 192.168.1.45 to CC:DD:EE:FF:00:11 (LAPTOP-MARK)",
-    raw: "Jun 06 14:32:01 dhcp,info: DHCP server dhcp-lan assigned 192.168.1.45 to CC:DD:EE:FF:00:11",
-    explanation: "The DHCP server successfully assigned IP address 192.168.1.45 to a device with MAC address CC:DD:EE:FF:00:11.",
-    suggestedSteps: [
-      "Verify the device is expected on your network",
-      "Check the DHCP lease time in /ip dhcp-server",
-      "Consider adding a static lease if this is a permanent device",
-    ],
-  },
-  {
-    id: 2, time: "14:31:58.112", level: "warning" as const, topic: "firewall",
-    message: "input chain: dropped connection from 185.220.101.47:54823 to 203.0.113.5:22 (brute-force block)",
-    raw: "Jun 06 14:31:58 firewall,warning: input: in:ether1 out:(unknown 0), proto TCP (SYN), 185.220.101.47:54823->203.0.113.5:22, len 60",
-    explanation: "The firewall blocked an SSH connection attempt from external IP 185.220.101.47. This appears to be a brute-force attack.",
-    suggestedSteps: [
-      "Check if the source IP is in an address list",
-      "Verify your SSH service is not exposed to the internet",
-      "Consider adding a rate-limit rule for SSH",
-    ],
-  },
-  {
-    id: 3, time: "14:31:45.887", level: "error" as const, topic: "dns",
-    message: "DNS cache: failed to resolve example.com — timeout after 5s",
-    raw: "Jun 06 14:31:45 dns,error: DNS cache: failed to resolve example.com (server 8.8.8.8 timeout)",
-    explanation: "DNS resolution for example.com failed. The upstream DNS server 8.8.8.8 did not respond within 5 seconds.",
-    suggestedSteps: [
-      "Check WAN connectivity",
-      "Verify DNS server addresses in /ip dns",
-      "Try alternative DNS servers (1.1.1.1, 9.9.9.9)",
-    ],
-  },
-  {
-    id: 4, time: "14:31:30.221", level: "warning" as const, topic: "interface",
-    message: "ether4: link down detected",
-    raw: "Jun 06 14:31:30 interface,warning: ether4: link down",
-    explanation: "Interface ether4 lost its physical link. A cable may be disconnected or the connected device is off.",
-    suggestedSteps: [
-      "Check the cable on ether4",
-      "Verify the connected device is powered on",
-      "Check for cable damage",
-    ],
-  },
-  {
-    id: 5, time: "14:31:12.998", level: "info" as const, topic: "system",
-    message: "user admin logged in from 192.168.1.45 via winbox",
-    raw: "Jun 06 14:31:12 system,info: user admin logged in from 192.168.1.45 via winbox",
-    explanation: "The admin user logged in from a LAN device via WinBox. This is normal if expected.",
-    suggestedSteps: [
-      "Verify this login was intentional",
-      "Check if this IP is assigned to a known device",
-    ],
-  },
-  {
-    id: 6, time: "14:30:58.445", level: "info" as const, topic: "dhcp",
-    message: "lease expired for 192.168.1.78 (AA:BB:CC:11:22:33)",
-    raw: "Jun 06 14:30:58 dhcp,info: DHCP server dhcp-lan: lease expired for 192.168.1.78",
-    explanation: "A DHCP lease expired. The device disconnected or moved out of range.",
-    suggestedSteps: [
-      "No action required unless the device should stay connected",
-    ],
-  },
-  {
-    id: 7, time: "14:30:42.110", level: "warning" as const, topic: "firewall",
-    message: "forward chain: dropped outbound to port 445 (SMB blocked)",
-    raw: "Jun 06 14:30:42 firewall,warning: forward: in:bridge1 out:ether1, proto TCP, 192.168.1.28:51234->93.184.216.34:445",
-    explanation: "Outbound SMB traffic (port 445) was blocked. This is a security best practice to prevent ransomware spread.",
-    suggestedSteps: [
-      "This is expected behavior — no action needed",
-      "If the device needs SMB access, add a specific allow rule",
-    ],
-  },
-  {
-    id: 8, time: "14:30:22.776", level: "info" as const, topic: "wireless",
-    message: "wlan1: client AA:BB:CC:DD:EE:01 connected on SSID 'HomeWiFi'",
-    raw: "Jun 06 14:30:22 wireless,info: wlan1: AA:BB:CC:DD:EE:01 connected",
-    explanation: "A wireless client connected to the Wi-Fi network.",
-    suggestedSteps: [
-      "Verify this is a known device",
-    ],
-  },
-  {
-    id: 9, time: "14:30:05.331", level: "error" as const, topic: "firewall",
-    message: "input chain: dropped 15 packets from 45.33.32.156 in 10s (port scan detected)",
-    raw: "Jun 06 14:30:05 firewall,error: input: 15 packets dropped from 45.33.32.156 (port scan)",
-    explanation: "Multiple dropped packets from the same source suggest a port scan. Your firewall is protecting the device.",
-    suggestedSteps: [
-      "Consider adding the source IP to an address list for blocking",
-      "Verify firewall rules are comprehensive",
-    ],
-  },
-  {
-    id: 10, time: "14:29:48.112", level: "info" as const, topic: "system",
-    message: "scheduled backup completed successfully",
-    raw: "Jun 06 14:29:48 system,info: scheduled backup saved to flash",
-    explanation: "An automatic scheduled backup completed. Config is safely stored.",
-    suggestedSteps: [
-      "Verify backup file exists in /system backup",
-      "Export backup to external storage periodically",
-    ],
-  },
-];
+const DEVICE_LOGS: Record<string, LogEntry[]> = {
+  "rb5009-core": [
+    { id: 1, time: "14:32:01.442", level: "info", topic: "dhcp", message: "assigned 192.168.1.45 to CC:DD:EE:FF:00:11 (LAPTOP-MARK)", raw: "Jun 06 14:32:01 dhcp,info: DHCP server dhcp-lan assigned 192.168.1.45 to CC:DD:EE:FF:00:11", explanation: "The DHCP server successfully assigned IP address 192.168.1.45 to a device with MAC address CC:DD:EE:FF:00:11.", suggestedSteps: ["Verify the device is expected on your network", "Check the DHCP lease time in /ip dhcp-server", "Consider adding a static lease if this is a permanent device"] },
+    { id: 2, time: "14:31:58.112", level: "warning", topic: "firewall", message: "input chain: dropped connection from 185.220.101.47:54823 to 203.0.113.5:22 (brute-force block)", raw: "Jun 06 14:31:58 firewall,warning: input: in:ether1 out:(unknown 0), proto TCP (SYN), 185.220.101.47:54823->203.0.113.5:22, len 60", explanation: "The firewall blocked an SSH connection attempt from external IP 185.220.101.47. This appears to be a brute-force attack.", suggestedSteps: ["Check if the source IP is in an address list", "Verify your SSH service is not exposed to the internet", "Consider adding a rate-limit rule for SSH"] },
+    { id: 3, time: "14:31:45.887", level: "error", topic: "dns", message: "DNS cache: failed to resolve example.com — timeout after 5s", raw: "Jun 06 14:31:45 dns,error: DNS cache: failed to resolve example.com (server 8.8.8.8 timeout)", explanation: "DNS resolution for example.com failed. The upstream DNS server 8.8.8.8 did not respond within 5 seconds.", suggestedSteps: ["Check WAN connectivity", "Verify DNS server addresses in /ip dns", "Try alternative DNS servers (1.1.1.1, 9.9.9.9)"] },
+    { id: 4, time: "14:31:30.221", level: "warning", topic: "interface", message: "ether4: link down detected", raw: "Jun 06 14:31:30 interface,warning: ether4: link down", explanation: "Interface ether4 lost its physical link. A cable may be disconnected or the connected device is off.", suggestedSteps: ["Check the cable on ether4", "Verify the connected device is powered on", "Check for cable damage"] },
+    { id: 5, time: "14:31:12.998", level: "info", topic: "system", message: "user admin logged in from 192.168.1.45 via winbox", raw: "Jun 06 14:31:12 system,info: user admin logged in from 192.168.1.45 via winbox", explanation: "The admin user logged in from a LAN device via WinBox. This is normal if expected.", suggestedSteps: ["Verify this login was intentional", "Check if this IP is assigned to a known device"] },
+    { id: 6, time: "14:30:58.445", level: "info", topic: "dhcp", message: "lease expired for 192.168.1.78 (AA:BB:CC:11:22:33)", raw: "Jun 06 14:30:58 dhcp,info: DHCP server dhcp-lan: lease expired for 192.168.1.78", explanation: "A DHCP lease expired. The device disconnected or moved out of range.", suggestedSteps: ["No action required unless the device should stay connected"] },
+    { id: 7, time: "14:30:42.110", level: "warning", topic: "firewall", message: "forward chain: dropped outbound to port 445 (SMB blocked)", raw: "Jun 06 14:30:42 firewall,warning: forward: in:bridge1 out:ether1, proto TCP, 192.168.1.28:51234->93.184.216.34:445", explanation: "Outbound SMB traffic (port 445) was blocked. This is a security best practice to prevent ransomware spread.", suggestedSteps: ["This is expected behavior — no action needed", "If the device needs SMB access, add a specific allow rule"] },
+    { id: 8, time: "14:30:22.776", level: "info", topic: "wireless", message: "wlan1: client AA:BB:CC:DD:EE:01 connected on SSID 'HomeWiFi'", raw: "Jun 06 14:30:22 wireless,info: wlan1: AA:BB:CC:DD:EE:01 connected", explanation: "A wireless client connected to the Wi-Fi network.", suggestedSteps: ["Verify this is a known device"] },
+    { id: 9, time: "14:30:05.331", level: "error", topic: "firewall", message: "input chain: dropped 15 packets from 45.33.32.156 in 10s (port scan detected)", raw: "Jun 06 14:30:05 firewall,error: input: 15 packets dropped from 45.33.32.156 (port scan)", explanation: "Multiple dropped packets from the same source suggest a port scan. Your firewall is protecting the device.", suggestedSteps: ["Consider adding the source IP to an address list for blocking", "Verify firewall rules are comprehensive"] },
+    { id: 10, time: "14:29:48.112", level: "info", topic: "system", message: "scheduled backup completed successfully", raw: "Jun 06 14:29:48 system,info: scheduled backup saved to flash", explanation: "An automatic scheduled backup completed. Config is safely stored.", suggestedSteps: ["Verify backup file exists in /system backup", "Export backup to external storage periodically"] },
+  ],
+  "rb4011-branch": [
+    { id: 1, time: "09:12:33.102", level: "info", topic: "dhcp", message: "assigned 10.20.1.105 to 11:22:33:44:55:05 (LAPTOP-HR)", raw: "Jun 06 09:12:33 dhcp,info: DHCP server dhcp-branch assigned 10.20.1.105 to 11:22:33:44:55:05", explanation: "New device received IP from branch DHCP pool.", suggestedSteps: ["Verify this is an authorized device"] },
+    { id: 2, time: "09:10:15.443", level: "info", topic: "system", message: "user admin logged in from 10.20.1.100 via winbox", raw: "Jun 06 09:10:15 system,info: user admin logged in from 10.20.1.100 via winbox", explanation: "Admin login from branch office LAN.", suggestedSteps: ["Verify this login was intentional"] },
+    { id: 3, time: "09:08:22.776", level: "warning", topic: "interface", message: "sfp-sfpplus1: rx-power low -18.5 dBm", raw: "Jun 06 09:08:22 interface,warning: sfp-sfpplus1: rx-power low", explanation: "SFP+ uplink fiber signal is degrading. May indicate dirty connector or fiber bend.", suggestedSteps: ["Check fiber patch cable for bends", "Clean SFP connector", "Monitor signal over 24h"] },
+    { id: 4, time: "09:05:11.223", level: "info", topic: "firewall", message: "forward chain: accepted VoIP traffic to 10.20.2.50", raw: "Jun 06 09:05:11 firewall,info: forward: QoS VoIP prioritized", explanation: "VoIP traffic is being prioritized by QoS rules.", suggestedSteps: ["No action needed — QoS working correctly"] },
+    { id: 5, time: "09:02:44.887", level: "info", topic: "dhcp", message: "lease renewed for 10.20.1.100 (Branch-PC-01)", raw: "Jun 06 09:02:44 dhcp,info: lease renewed", explanation: "Branch PC renewed its DHCP lease.", suggestedSteps: [] },
+    { id: 6, time: "08:58:30.112", level: "error", topic: "dns", message: "DNS cache: failed to resolve internal.corp — SERVFAIL", raw: "Jun 06 08:58:30 dns,error: SERVFAIL for internal.corp", explanation: "Internal DNS zone returned SERVFAIL. The DNS server may be down or misconfigured.", suggestedSteps: ["Check if internal DNS server is reachable", "Verify zone configuration on DNS server"] },
+    { id: 7, time: "08:55:12.445", level: "info", topic: "system", message: "NTP synchronized with time.google.com", raw: "Jun 06 08:55:12 system,info: NTP synced", explanation: "Time synchronization successful.", suggestedSteps: [] },
+  ],
+  "ccr2004-edge": [
+    { id: 1, time: "16:45:01.223", level: "warning", topic: "firewall", message: "input chain: rate-limit triggered for 203.0.113.1:8291 (Winbox flood)", raw: "Jun 06 16:45:01 firewall,warning: rate-limit Winbox", explanation: "Too many Winbox connection attempts detected from external IP.", suggestedSteps: ["Check source IP reputation", "Verify management access is restricted"] },
+    { id: 2, time: "16:42:33.887", level: "info", topic: "routing", message: "BGP: peer 203.0.113.10 established, 1247 prefixes received", raw: "Jun 06 16:42:33 routing,info: BGP established", explanation: "BGP session with upstream ISP came up. Full routing table received.", suggestedSteps: ["Verify prefix count matches expectations"] },
+    { id: 3, time: "16:40:15.112", level: "error", topic: "interface", message: "sfp-sfpplus3: excessive CRC errors (1523 in 60s)", raw: "Jun 06 16:40:15 interface,error: CRC errors on sfp-sfpplus3", explanation: "Physical layer errors on SFP+ port. Likely bad fiber or SFP module.", suggestedSteps: ["Replace SFP module", "Check fiber patch cable", "Run /interface monitor-traffic sfp-sfpplus3"] },
+    { id: 4, time: "16:38:22.445", level: "info", topic: "system", message: "user admin logged in from 203.0.113.100 via api-ssl", raw: "Jun 06 16:38:22 system,info: API-SSL login", explanation: "API management connection established.", suggestedSteps: ["Verify this is a known management system"] },
+    { id: 5, time: "16:35:01.776", level: "warning", topic: "system", message: "CPU usage: 78% for 30s — possible routing table churn", raw: "Jun 06 16:35:01 system,warning: CPU high", explanation: "CPU spike likely caused by BGP route recalculation.", suggestedSteps: ["Check BGP peer status", "Monitor for flapping routes"] },
+    { id: 6, time: "16:30:12.331", level: "info", topic: "firewall", message: "forward chain: DDoS mitigation active — 45K pps from 198.51.100.0/24", raw: "Jun 06 16:30:12 firewall,info: DDoS mitigation", explanation: "DDoS attack detected and mitigated by firewall rules.", suggestedSteps: ["Verify upstream filtering is active", "Check if ISP has null-routed attack traffic"] },
+  ],
+  "hap-ax3-wifi": [
+    { id: 1, time: "11:22:01.102", level: "info", topic: "wireless", message: "wlan2 (5G): client AA:11:BB:22:CC:08 connected — WiFi 6, 80MHz", raw: "Jun 06 11:22:01 wireless,info: WiFi 6 client connected", explanation: "MacBook connected to 5GHz band with WiFi 6.", suggestedSteps: [] },
+    { id: 2, time: "11:20:33.445", level: "warning", topic: "wireless", message: "wlan1 (2.4G): interference detected — channel utilization 85%", raw: "Jun 06 11:20:33 wireless,warning: interference", explanation: "Heavy interference on 2.4GHz band. Neighboring APs causing congestion.", suggestedSteps: ["Consider switching to 5GHz only", "Scan for less congested channel", "Reduce 2.4GHz TX power"] },
+    { id: 3, time: "11:18:15.776", level: "info", topic: "dhcp", message: "assigned 192.168.50.18 to AA:11:BB:22:CC:09 (New-Phone)", raw: "Jun 06 11:18:15 dhcp,info: new device", explanation: "New device received IP from office WiFi.", suggestedSteps: ["Verify this is a known device"] },
+    { id: 4, time: "11:15:22.112", level: "error", topic: "system", message: "Memory usage: 82% — consider reboot or reduce connections", raw: "Jun 06 11:15:22 system,error: memory high", explanation: "hAP ax³ running low on memory due to many concurrent WiFi clients.", suggestedSteps: ["Reboot the AP to clear memory", "Consider load balancing clients across bands", "Check for memory leaks in RouterOS version"] },
+    { id: 5, time: "11:12:01.331", level: "info", topic: "wireless", message: "wlan1: client AA:11:BB:22:CC:03 roaming from wlan2", raw: "Jun 06 11:12:01 wireless,info: band steering", explanation: "Client was steered from 5GHz to 2.4GHz for better signal.", suggestedSteps: [] },
+    { id: 6, time: "11:08:44.223", level: "info", topic: "system", message: "CAPsMAN: 2 CAPs connected, all managed", raw: "Jun 06 11:08:44 system,info: CAPsMAN status", explanation: "CAPsMAN managing 2 controlled APs.", suggestedSteps: [] },
+  ],
+  "rb760-standby": [
+    { id: 1, time: "—", level: "info", topic: "system", message: "Device is offline — no recent logs available", explanation: "This device is currently powered off or unreachable.", suggestedSteps: ["Power on the device", "Check network cable to management interface", "Verify device is physically accessible"] },
+  ],
+};
 
 const LOG_INTELLIGENCE: Record<number, { confidence: string; impact: string; evidence: string[]; nextAction: string; fixType: "read-only" | "config-draft" | "monitor" }> = {
   2: {
@@ -627,7 +565,7 @@ const FIX_DRAFTS: Record<number, { title: string; risk: "Low" | "Medium" | "High
   },
 };
 
-export async function fetchLogs(): Promise<ApiResponse<LogsData>> {
+export async function fetchLogs(deviceId?: string): Promise<ApiResponse<LogsData>> {
   const latency = randomLatency();
   await delay(latency);
 
@@ -639,8 +577,10 @@ export async function fetchLogs(): Promise<ApiResponse<LogsData>> {
     return wrapError<LogsData>("API Error: failed to fetch logs", latency);
   }
 
+  const key = deviceId && DEVICE_LOGS[deviceId] ? deviceId : "rb5009-core";
+
   return wrapResponse({
-    logs: LOG_ENTRIES,
+    logs: DEVICE_LOGS[key],
     intelligence: LOG_INTELLIGENCE,
     fixDrafts: FIX_DRAFTS,
   });
@@ -672,71 +612,88 @@ export function generateLiveLog(): LogEntry {
 }
 
 // ============================================================
-// Config Data
+// Config Data — per-device
 // ============================================================
 
-const CONFIG_SECTIONS: ConfigSection[] = [
-  {
-    id: "ip", label: "/ip", path: "/ip", content: "",
-    children: [
-      {
-        id: "ip-address", label: "address", path: "/ip address",
-        content: `/ip address\nadd address=203.0.113.5/24 interface=ether1 network=203.0.113.0\nadd address=192.168.1.1/24 interface=bridge1 network=192.168.1.0\nadd address=192.168.2.1/24 interface=wlan1 network=192.168.2.0\nadd address=10.0.0.1/30 interface=ether5 network=10.0.0.0`,
-      },
-      {
-        id: "ip-route", label: "route", path: "/ip route",
-        content: `/ip route\nadd disabled=no dst-address=0.0.0.0/0 gateway=203.0.113.1 routing-table=main\nadd disabled=no dst-address=10.20.0.0/24 gateway=10.0.0.2 routing-table=main\nadd disabled=no dst-address=172.16.0.0/12 gateway=192.168.1.254 routing-table=main`,
-      },
-      {
-        id: "ip-firewall", label: "firewall", path: "/ip firewall", content: "",
-        children: [
-          {
-            id: "ip-firewall-filter", label: "filter", path: "/ip firewall filter",
-            content: `/ip firewall filter\nadd action=accept chain=input comment="Allow established/related" connection-state=established,related\nadd action=accept chain=input comment="Allow ICMP" protocol=icmp\nadd action=accept chain=input comment="Allow SSH from LAN" dst-port=22 protocol=tcp src-address=192.168.1.0/24\nadd action=accept chain=input comment="Allow Winbox from LAN" dst-port=8291 protocol=tcp src-address=192.168.1.0/24\nadd action=accept chain=input comment="Allow API from LAN" dst-port=8728,8729 protocol=tcp src-address=192.168.1.0/24\nadd action=drop chain=input comment="Drop all other input"\nadd action=accept chain=forward comment="Allow established/related" connection-state=established,related`,
-          },
-          {
-            id: "ip-firewall-nat", label: "nat", path: "/ip firewall nat",
-            content: `/ip firewall nat\nadd action=masquerade chain=srcnat out-interface=ether1 src-address=192.168.1.0/24\nadd action=dst-nat chain=dstnat dst-port=80 protocol=tcp to-addresses=192.168.1.10 to-ports=80`,
-          },
-        ],
-      },
-      {
-        id: "ip-dhcp", label: "dhcp-server", path: "/ip dhcp-server",
-        content: `/ip dhcp-server\nadd address-pool=dhcp-lan interface=bridge1 name=dhcp-lan\n/ip dhcp-server network\nadd address=192.168.1.0/24 dns-server=192.168.1.1 gateway=192.168.1.1`,
-      },
-    ],
-  },
-  {
-    id: "interface", label: "/interface", path: "/interface", content: "",
-    children: [
-      {
-        id: "interface-ethernet", label: "ethernet", path: "/interface ethernet",
-        content: `/interface ethernet\nset [ find default-name=ether1 ] name=ether1 comment=WAN\nset [ find default-name=ether2 ] name=ether2 comment=LAN\nset [ find default-name=ether3 ] name=ether3 comment=LAN2\nset [ find default-name=ether4 ] name=ether4 comment=unused`,
-      },
-      {
-        id: "interface-bridge", label: "bridge", path: "/interface bridge",
-        content: `/interface bridge\nadd name=bridge1 comment=LAN-Bridge\n/interface bridge port\nadd bridge=bridge1 interface=ether2\nadd bridge=bridge1 interface=ether3`,
-      },
-    ],
-  },
-  {
-    id: "system", label: "/system", path: "/system", content: "",
-    children: [
-      {
-        id: "system-identity", label: "identity", path: "/system identity",
-        content: `/system identity\nset name=RouterOS-Main`,
-      },
-      {
-        id: "system-ntp", label: "ntp client", path: "/system ntp client",
-        content: `/system ntp client\nset enabled=yes\n/system ntp client servers\nadd address=time.google.com`,
-      },
-    ],
-  },
-];
+const DEVICE_CONFIGS: Record<string, ConfigSection[]> = {
+  "rb5009-core": [
+    { id: "ip", label: "/ip", path: "/ip", content: "", children: [
+      { id: "ip-address", label: "address", path: "/ip address", content: `/ip address\nadd address=203.0.113.5/24 interface=ether1 network=203.0.113.0\nadd address=192.168.1.1/24 interface=bridge1 network=192.168.1.0\nadd address=192.168.2.1/24 interface=wlan1 network=192.168.2.0\nadd address=10.0.0.1/30 interface=ether5 network=10.0.0.0` },
+      { id: "ip-route", label: "route", path: "/ip route", content: `/ip route\nadd disabled=no dst-address=0.0.0.0/0 gateway=203.0.113.1 routing-table=main\nadd disabled=no dst-address=10.20.0.0/24 gateway=10.0.0.2 routing-table=main\nadd disabled=no dst-address=172.16.0.0/12 gateway=192.168.1.254 routing-table=main` },
+      { id: "ip-firewall", label: "firewall", path: "/ip firewall", content: "", children: [
+        { id: "ip-firewall-filter", label: "filter", path: "/ip firewall filter", content: `/ip firewall filter\nadd action=accept chain=input comment="Allow established/related" connection-state=established,related\nadd action=accept chain=input comment="Allow ICMP" protocol=icmp\nadd action=accept chain=input comment="Allow SSH from LAN" dst-port=22 protocol=tcp src-address=192.168.1.0/24\nadd action=accept chain=input comment="Allow Winbox from LAN" dst-port=8291 protocol=tcp src-address=192.168.1.0/24\nadd action=drop chain=input comment="Drop all other input"` },
+        { id: "ip-firewall-nat", label: "nat", path: "/ip firewall nat", content: `/ip firewall nat\nadd action=masquerade chain=srcnat out-interface=ether1 src-address=192.168.1.0/24` },
+      ]},
+      { id: "ip-dhcp", label: "dhcp-server", path: "/ip dhcp-server", content: `/ip dhcp-server\nadd address-pool=dhcp-lan interface=bridge1 name=dhcp-lan\n/ip dhcp-server network\nadd address=192.168.1.0/24 dns-server=192.168.1.1 gateway=192.168.1.1` },
+    ]},
+    { id: "interface", label: "/interface", path: "/interface", content: "", children: [
+      { id: "interface-ethernet", label: "ethernet", path: "/interface ethernet", content: `/interface ethernet\nset [ find default-name=ether1 ] name=ether1 comment=WAN\nset [ find default-name=ether2 ] name=ether2 comment=LAN\nset [ find default-name=ether3 ] name=ether3 comment=LAN2\nset [ find default-name=ether4 ] name=ether4 comment=unused` },
+      { id: "interface-bridge", label: "bridge", path: "/interface bridge", content: `/interface bridge\nadd name=bridge1 comment=LAN-Bridge\n/interface bridge port\nadd bridge=bridge1 interface=ether2\nadd bridge=bridge1 interface=ether3` },
+    ]},
+    { id: "system", label: "/system", path: "/system", content: "", children: [
+      { id: "system-identity", label: "identity", path: "/system identity", content: `/system identity\nset name=RouterOS-Main` },
+      { id: "system-ntp", label: "ntp client", path: "/system ntp client", content: `/system ntp client\nset enabled=yes\n/system ntp client servers\nadd address=time.google.com` },
+    ]},
+  ],
+  "rb4011-branch": [
+    { id: "ip", label: "/ip", path: "/ip", content: "", children: [
+      { id: "ip-address", label: "address", path: "/ip address", content: `/ip address\nadd address=10.20.0.1/24 interface=ether1 network=10.20.0.0\nadd address=10.20.1.1/24 interface=ether2 network=10.20.1.0\nadd address=10.20.2.1/24 interface=ether3 network=10.20.2.0` },
+      { id: "ip-route", label: "route", path: "/ip route", content: `/ip route\nadd disabled=no dst-address=0.0.0.0/0 gateway=10.20.0.254 routing-table=main` },
+      { id: "ip-firewall", label: "firewall", path: "/ip firewall", content: "", children: [
+        { id: "ip-firewall-filter", label: "filter", path: "/ip firewall filter", content: `/ip firewall filter\nadd action=accept chain=input connection-state=established,related\nadd action=accept chain=input protocol=icmp\nadd action=accept chain=input dst-port=22,8291 protocol=tcp src-address=10.20.1.0/24\nadd action=drop chain=input` },
+        { id: "ip-firewall-nat", label: "nat", path: "/ip firewall nat", content: `/ip firewall nat\nadd action=masquerade chain=srcnat out-interface=ether1 src-address=10.20.1.0/24` },
+      ]},
+      { id: "ip-dhcp", label: "dhcp-server", path: "/ip dhcp-server", content: `/ip dhcp-server\nadd address-pool=dhcp-branch interface=ether2 name=dhcp-branch\n/ip dhcp-server network\nadd address=10.20.1.0/24 dns-server=10.20.0.1 gateway=10.20.1.1` },
+    ]},
+    { id: "interface", label: "/interface", path: "/interface", content: "", children: [
+      { id: "interface-ethernet", label: "ethernet", path: "/interface ethernet", content: `/interface ethernet\nset [ find default-name=ether1 ] name=ether1 comment=WAN\nset [ find default-name=ether2 ] name=ether2 comment=LAN\nset [ find default-name=ether3 ] name=ether3 comment=LAN2\nset [ find default-name=sfp-sfpplus1 ] name=sfp-sfpplus1 comment=Uplink` },
+    ]},
+    { id: "system", label: "/system", path: "/system", content: "", children: [
+      { id: "system-identity", label: "identity", path: "/system identity", content: `/system identity\nset name=Branch-Office-GW` },
+    ]},
+  ],
+  "ccr2004-edge": [
+    { id: "ip", label: "/ip", path: "/ip", content: "", children: [
+      { id: "ip-address", label: "address", path: "/ip address", content: `/ip address\nadd address=203.0.113.1/24 interface=ether1 network=203.0.113.0\nadd address=203.0.113.2/30 interface=sfp-sfpplus1 network=203.0.113.0\nadd address=203.0.113.6/30 interface=sfp-sfpplus2 network=203.0.113.4\nadd address=10.0.0.1/30 interface=sfp28-1 network=10.0.0.0` },
+      { id: "ip-route", label: "route", path: "/ip route", content: `/ip route\nadd disabled=no dst-address=0.0.0.0/0 gateway=203.0.113.254 routing-table=main\nadd disabled=no dst-address=10.0.0.0/8 gateway=10.0.0.2 routing-table=main` },
+      { id: "ip-firewall", label: "firewall", path: "/ip firewall", content: "", children: [
+        { id: "ip-firewall-filter", label: "filter", path: "/ip firewall filter", content: `/ip firewall filter\nadd action=accept chain=input connection-state=established,related\nadd action=accept chain=input protocol=icmp\nadd action=accept chain=input dst-port=22,8291,8728,8729 protocol=tcp src-address=203.0.113.100\nadd action=drop chain=input\nadd action=accept chain=forward connection-state=established,related\nadd action=accept chain=forward src-address=10.0.0.0/8\nadd action=drop chain=forward` },
+      ]},
+    ]},
+    { id: "routing", label: "/routing", path: "/routing", content: "", children: [
+      { id: "routing-bgp", label: "bgp", path: "/routing bgp", content: `/routing bgp instance\nset default as=65001 router-id=203.0.113.1\n/routing bgp peer\nadd name=upstream-isp remote-address=203.0.113.10 remote-as=65000 multihop=yes` },
+    ]},
+    { id: "interface", label: "/interface", path: "/interface", content: "", children: [
+      { id: "interface-sfp", label: "sfp+", path: "/interface ethernet", content: `/interface ethernet\nset [ find default-name=sfp-sfpplus1 ] name=sfp-sfpplus1 comment=WAN-1\nset [ find default-name=sfp-sfpplus2 ] name=sfp-sfpplus2 comment=WAN-2\nset [ find default-name=sfp28-1 ] name=sfp28-1 comment=Core-Link` },
+    ]},
+    { id: "system", label: "/system", path: "/system", content: "", children: [
+      { id: "system-identity", label: "identity", path: "/system identity", content: `/system identity\nset name=Edge-01` },
+    ]},
+  ],
+  "hap-ax3-wifi": [
+    { id: "ip", label: "/ip", path: "/ip", content: "", children: [
+      { id: "ip-address", label: "address", path: "/ip address", content: `/ip address\nadd address=192.168.88.5/24 interface=ether1 network=192.168.88.0\nadd address=192.168.50.1/24 interface=bridge1 network=192.168.50.0` },
+      { id: "ip-dhcp", label: "dhcp-server", path: "/ip dhcp-server", content: `/ip dhcp-server\nadd address-pool=dhcp-wifi interface=bridge1 name=dhcp-wifi\n/ip dhcp-server network\nadd address=192.168.50.0/24 dns-server=192.168.50.1 gateway=192.168.50.1` },
+    ]},
+    { id: "interface", label: "/interface", path: "/interface", content: "", children: [
+      { id: "interface-wireless", label: "wireless", path: "/interface wifi", content: `/interface wifi\nset [ find default-name=wifi1 ] name=wifi1 channel.frequency=2412,2437,2462 security.authentication-types=wpa2-psk,wpa3-psk\nset [ find default-name=wifi2 ] name=wifi2 channel.frequency=5180,5260,5500 security.authentication-types=wpa2-psk,wpa3-psk\n/interface wifi provisioning\nadd action=create-enabled master-interface=wifi1 name-format=wifi1-%I\nadd action=create-enabled master-interface=wifi2 name-format=wifi2-%I` },
+      { id: "interface-bridge", label: "bridge", path: "/interface bridge", content: `/interface bridge\nadd name=bridge1 comment=WiFi-Bridge\n/interface bridge port\nadd bridge=bridge1 interface=ether2\nadd bridge=bridge1 interface=wifi1\nadd bridge=bridge1 interface=wifi2` },
+    ]},
+    { id: "system", label: "/system", path: "/system", content: "", children: [
+      { id: "system-identity", label: "identity", path: "/system identity", content: `/system identity\nset name=WiFi-AP-01` },
+    ]},
+  ],
+  "rb760-standby": [
+    { id: "system", label: "/system", path: "/system", content: "", children: [
+      { id: "system-identity", label: "identity", path: "/system identity", content: `/system identity\nset name=Backup-Router\n# Device is offline — config shown from last known backup` },
+    ]},
+  ],
+};
 
-export async function fetchConfig(): Promise<ApiResponse<ConfigSection[]>> {
+export async function fetchConfig(deviceId?: string): Promise<ApiResponse<ConfigSection[]>> {
   await delay(randomLatency());
-  return wrapResponse(CONFIG_SECTIONS);
+  const key = deviceId && DEVICE_CONFIGS[deviceId] ? deviceId : "rb5009-core";
+  return wrapResponse(DEVICE_CONFIGS[key]);
 }
 
 // ============================================================
@@ -744,6 +701,35 @@ export async function fetchConfig(): Promise<ApiResponse<ConfigSection[]>> {
 // ============================================================
 
 const DIAGNOSTIC_SCENARIOS: Record<string, DiagnosticScenario> = {
+  offline: {
+    title: "Device Offline",
+    description: "This device is currently offline — diagnostics are limited",
+    steps: [
+      { label: "Check device status", status: "pending", command: "/system resource print", outcome: "fail", detail: "Connection refused — device unreachable" },
+      { label: "Ping device IP", status: "pending", command: "/ping <device-ip> count=4", outcome: "fail", detail: "0/4 received — host unreachable" },
+      { label: "Check last known config", status: "pending", command: "/system backup print", outcome: "pass", detail: "Last backup available from previous session" },
+    ],
+    result: {
+      cause: "Device is powered off, disconnected, or has network issues",
+      fix: "The device is not responding to API or ping requests. Physical access or out-of-band management may be required.",
+      risk: "Low",
+      confidence: "High",
+      evidence: [
+        "API connection refused",
+        "Ping unreachable",
+        "Device status: offline",
+      ],
+      safeFixDraft: [
+        "# Verify physical power and cable connections",
+        "# Check if device has serial/OOB access",
+        "# If reachable via neighbor, check ARP/CDP/LLDP",
+      ],
+      verification: [
+        "/system resource print",
+        "/ping <device-ip> count=4",
+      ],
+    },
+  },
   internet: {
     title: "No Internet",
     description: "Diagnose why the device has no internet connectivity",
@@ -871,8 +857,17 @@ const DIAGNOSTIC_SCENARIOS: Record<string, DiagnosticScenario> = {
   },
 };
 
-export async function fetchDiagnosticScenario(type: string): Promise<ApiResponse<DiagnosticScenario | null>> {
+export async function fetchDiagnosticScenario(type: string, deviceId?: string): Promise<ApiResponse<DiagnosticScenario | null>> {
   await delay(randomLatency());
+
+  // If device is offline, return offline scenario regardless of type
+  if (deviceId) {
+    const profile = DEVICE_PROFILES.find((d) => d.id === deviceId);
+    if (profile && profile.status === "offline") {
+      return wrapResponse(DIAGNOSTIC_SCENARIOS["offline"]);
+    }
+  }
+
   const scenario = DIAGNOSTIC_SCENARIOS[type] ?? null;
   return wrapResponse(scenario);
 }

@@ -1,6 +1,7 @@
 import { LayoutDashboard, Server, Settings, FileCode, ScrollText, Wrench, Wifi, ChevronRight, PlusCircle } from "lucide-react";
 import type { NavItem } from "../types";
 import { getTheme } from "./theme";
+import { DEVICE_PROFILES } from "../services/mockRouterOSApi";
 
 const navItems = [
   { id: "dashboard" as NavItem, label: "Dashboard", icon: LayoutDashboard },
@@ -17,10 +18,13 @@ interface SidebarProps {
   activeNav: NavItem;
   setActiveNav: (nav: NavItem) => void;
   isDark: boolean;
+  activeDeviceId?: string;
 }
 
-export function Sidebar({ activeNav, setActiveNav, isDark }: SidebarProps) {
+export function Sidebar({ activeNav, setActiveNav, isDark, activeDeviceId }: SidebarProps) {
   const t = getTheme(isDark);
+  const activeDevice = DEVICE_PROFILES.find((d) => d.id === activeDeviceId) ?? DEVICE_PROFILES[0];
+  const statusColor = activeDevice.status === "online" ? "#22C55E" : activeDevice.status === "warning" ? "#F59E0B" : "#EF4444";
 
   return (
     <div
@@ -95,7 +99,7 @@ export function Sidebar({ activeNav, setActiveNav, isDark }: SidebarProps) {
         })}
       </div>
 
-      {/* Footer */}
+      {/* Footer — Active Device */}
       <div
         style={{
           padding: "12px 16px",
@@ -115,15 +119,16 @@ export function Sidebar({ activeNav, setActiveNav, isDark }: SidebarProps) {
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: "#22C55E",
-              boxShadow: "0 0 6px #22C55E",
+              background: statusColor,
+              boxShadow: activeDevice.status === "online" ? `0 0 6px ${statusColor}` : "none",
             }}
           />
-          <span style={{ color: t.textMuted, fontSize: 11, fontWeight: 500 }}>
-            Connected
+          <span style={{ color: t.text, fontSize: 11, fontWeight: 600 }}>
+            {activeDevice.name}
           </span>
         </div>
-        <div style={{ color: t.textSubtle, fontSize: 10 }}>RouterOS v7.14.3</div>
+        <div style={{ color: t.textSubtle, fontSize: 10 }}>{activeDevice.model} · {activeDevice.ip}</div>
+        <div style={{ color: t.textSubtle, fontSize: 10, marginTop: 2 }}>RouterOS v{activeDevice.version}</div>
         <div style={{ color: t.textSubtle, fontSize: 10, marginTop: 2 }}>MikroTik Manager v1.2.0</div>
       </div>
     </div>

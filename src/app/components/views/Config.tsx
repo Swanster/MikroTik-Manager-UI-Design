@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Copy, Download, ChevronRight, ChevronDown, FileCode, Search,
   Save, CheckCircle, AlertTriangle, RotateCcw, HardDrive, Shield, Terminal,
@@ -7,16 +7,12 @@ import type { AppMode, SafetyState } from "../../types";
 import { getTheme } from "../theme";
 import { addBatchToQueue } from "../../services/commandQueueService";
 import { logAuditEntry } from "../../services/auditLogService";
+import { fetchConfig } from "../../services/mockRouterOSApi";
+import { useFetch } from "../../services/useFetch";
+import { LoadingOverlay, ErrorBanner, LatencyBadge } from "../StatusComponents";
+import type { ConfigSection } from "../../services/types";
 
-type ConfigSection = {
-  id: string;
-  label: string;
-  path: string;
-  children?: ConfigSection[];
-  content: string;
-};
-
-const configSections: ConfigSection[] = [
+const FALLBACK_CONFIG: ConfigSection[] = [
   {
     id: "ip",
     label: "/ip",
@@ -201,13 +197,20 @@ interface ConfigProps {
   safety?: SafetyState;
   onQueueChange?: () => void;
   onOpenQueue?: () => void;
+  activeDeviceId?: string;
 }
 
-export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue }: ConfigProps) {
+export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activeDeviceId }: ConfigProps) {
   const t = getTheme(isDark);
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
-  const [selectedSection, setSelectedSection] = useState<ConfigSection>(configSections[0].children![0]);
+
+  // Fetch config from service layer
+  const fetcher = useCallback(() => fetchConfig(activeDeviceId), [activeDeviceId]);
+  const { data: configData, loading, error, latency, timestamp, refetch } = useFetch(fetcher, { maxRetries: 2 });
+  const configSections: ConfigSection[] = configData ?? FALLBACK_CONFIG;
+
+  const [selectedSection, setSelectedSection] = useState<ConfigSection>(configSections[0]?.children?.[0] ?? configSections[0]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(["ip", "interface", "system", "routing"]));
   const [copied, setCopied] = useState(false);
   const [search, setSearch] = useState("");

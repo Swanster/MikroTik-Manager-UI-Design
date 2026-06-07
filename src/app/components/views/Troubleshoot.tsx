@@ -37,9 +37,10 @@ interface TroubleshootProps {
   onAuditLog?: () => void;
   onQueueChange?: () => void;
   onOpenQueue?: () => void;
+  activeDeviceId?: string;
 }
 
-export function Troubleshoot({ isDark, mode, onAuditLog, onQueueChange, onOpenQueue }: TroubleshootProps) {
+export function Troubleshoot({ isDark, mode, onAuditLog, onQueueChange, onOpenQueue, activeDeviceId }: TroubleshootProps) {
   const t = getTheme(isDark);
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";

@@ -80,7 +80,7 @@ export default function App() {
         overflow: "hidden",
       }}
     >
-      <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} isDark={isDark} />
+      <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} isDark={isDark} activeDeviceId={activeDeviceId} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100%" }}>
         <TopBar
           activeNav={activeNav}
@@ -134,6 +134,7 @@ export default function App() {
                 safety={safetyState}
                 onQueueChange={triggerRefresh}
                 onOpenQueue={() => setQueueOpen(true)}
+                activeDeviceId={activeDeviceId}
               />
             </div>
           )}
@@ -143,6 +144,7 @@ export default function App() {
                 isDark={isDark}
                 mode={mode}
                 onAuditLog={triggerRefresh}
+                activeDeviceId={activeDeviceId}
               />
             </div>
           )}
@@ -154,6 +156,7 @@ export default function App() {
                 onAuditLog={triggerRefresh}
                 onQueueChange={triggerRefresh}
                 onOpenQueue={() => setQueueOpen(true)}
+                activeDeviceId={activeDeviceId}
               />
             </div>
           )}

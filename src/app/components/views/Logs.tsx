@@ -282,17 +282,16 @@ interface LogsProps {
   isDark: boolean;
   mode: AppMode;
   onAuditLog?: () => void;
-  onQueueChange?: () => void;
-  onOpenQueue?: () => void;
+  activeDeviceId?: string;
 }
 
-export function Logs({ isDark, mode, onAuditLog, onQueueChange, onOpenQueue }: LogsProps) {
+export function Logs({ isDark, mode, onAuditLog, activeDeviceId }: LogsProps) {
   const t = getTheme(isDark);
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
 
   // Fetch logs from service layer
-  const fetcher = useCallback(() => fetchLogs(), []);
+  const fetcher = useCallback(() => fetchLogs(activeDeviceId), [activeDeviceId]);
   const { data, loading, error, latency, timestamp, refetch } = useFetch(fetcher, {
     refreshInterval: 0, // Manual refresh only
     maxRetries: 2,
