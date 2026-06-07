@@ -8,7 +8,9 @@ import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
 import { addBatchToQueue } from "../../services/commandQueueService";
 import { logAuditEntry } from "../../services/auditLogService";
+import { fetchDiagnosticScenario, DEVICE_PROFILES } from "../../services/mockRouterOSApi";
 import { ErrorBanner } from "../StatusComponents";
+import type { DiagnosticScenario, DiagnosticStep as ServiceDiagnosticStep, DiagnosticResult as ServiceDiagnosticResult } from "../../services/types";
 
 type Tab = "ping" | "traceroute" | "dns" | "bandwidth" | "torch";
 type DiagnosticType = "internet" | "wifi" | "slow" | "device";
@@ -52,6 +54,10 @@ export function Troubleshoot({ isDark, mode, onAuditLog, onQueueChange, onOpenQu
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
   const [reportText, setReportText] = useState<string | null>(null);
   const [reportStatus, setReportStatus] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const activeDevice = DEVICE_PROFILES.find((d) => d.id === activeDeviceId) ?? DEVICE_PROFILES[0];
+  const isDeviceOffline = activeDevice.status === "offline";
 
   const [pingHost, setPingHost] = useState("1.1.1.1");
   const [pingCount, setPingCount] = useState("4");
@@ -73,100 +79,30 @@ export function Troubleshoot({ isDark, mode, onAuditLog, onQueueChange, onOpenQu
   const [torchInterface, setTorchInterface] = useState("ether1");
   const [torchRunning, setTorchRunning] = useState(false);
 
-  const runGuidedDiagnostic = (type: DiagnosticType) => {
+  const runGuidedDiagnostic = async (type: DiagnosticType) => {
     setRunningDiagnostic(type);
     setDiagnosticResult(null);
     setReportText(null);
     setReportStatus(null);
+    setApiError(null);
 
-    let steps: DiagnosticStep[] = [];
-    let result: DiagnosticResult;
+    // Fetch scenario from service layer
+    const response = await fetchDiagnosticScenario(type, activeDeviceId);
 
-    if (type === "internet") {
-      steps = [
-        { label: "Check WAN interface status", command: "/interface print detail where name=ether1", detail: "ether1 is running, link 1Gbps", outcome: "pass", status: "pending" },
-        { label: "Test default gateway connectivity", command: "/ping 203.0.113.1 count=4", detail: "Gateway replies with 2.8 ms average", outcome: "pass", status: "pending" },
-        { label: "Verify DNS resolution", command: "/tool dns-update name=example.com", detail: "DNS lookup failed: timeout", outcome: "fail", status: "pending" },
-        { label: "Check NAT configuration", command: "/ip firewall nat print where chain=srcnat", detail: "Masquerade rule exists on WAN", outcome: "pass", status: "pending" },
-        { label: "Ping external host (1.1.1.1)", command: "/ping 1.1.1.1 count=4", detail: "External IP reachable, packet loss 0%", outcome: "pass", status: "pending" },
-      ];
-      result = {
-        cause: "DNS resolver failure",
-        fix: "WAN and NAT look healthy, but DNS lookup is timing out. Change DNS server only after backup/diff, or verify upstream DNS service first.",
-        risk: "Medium",
-        confidence: "High",
-        evidence: ["WAN interface is up", "Default gateway reachable", "External IP ping succeeds", "DNS lookup fails"],
-        safeFixDraft: [
-          "/ip dns print",
-          "/ip dns set servers=1.1.1.1,8.8.8.8 allow-remote-requests=yes",
-          "/tool dns-update name=example.com",
-        ],
-        verification: ["Resolve example.com from router", "Client can browse after DHCP DNS refresh", "No recurring DNS timeout logs within 10 minutes"],
-      };
-    } else if (type === "wifi") {
-      steps = [
-        { label: "Check wireless interface status", command: "/interface wireless print detail", detail: "wlan1 enabled and running", outcome: "pass", status: "pending" },
-        { label: "Verify SSID broadcast", command: "/interface wireless monitor wlan1 once", detail: "SSID broadcast active", outcome: "pass", status: "pending" },
-        { label: "Check security profile", command: "/interface wireless security-profiles print detail", detail: "WPA2 profile configured", outcome: "pass", status: "pending" },
-        { label: "Scan for channel interference", command: "/interface wireless scan wlan1 duration=10", detail: "High overlap detected on channel 6", outcome: "fail", status: "pending" },
-        { label: "Verify DHCP server", command: "/ip dhcp-server print detail", detail: "DHCP server is active on bridge", outcome: "pass", status: "pending" },
-      ];
-      result = {
-        cause: "2.4GHz channel interference",
-        fix: "Client auth and DHCP look normal. The likely issue is RF congestion. Draft a channel change, but apply only during low-usage window.",
-        risk: "Medium",
-        confidence: "Medium",
-        evidence: ["SSID is broadcasting", "Security profile present", "DHCP is active", "Channel scan shows overlap"],
-        safeFixDraft: [
-          "/interface wireless scan wlan1 duration=10",
-          "/interface wireless set wlan1 channel-width=20mhz frequency=2412",
-          "/interface wireless monitor wlan1 once",
-        ],
-        verification: ["Client reconnect success", "Signal remains better than -70 dBm", "Retry count decreases after change"],
-      };
-    } else if (type === "slow") {
-      steps = [
-        { label: "Check CPU and memory usage", command: "/system resource print", detail: "CPU 34%, memory 78%", outcome: "fail", status: "pending" },
-        { label: "Measure bandwidth to gateway", command: "/tool bandwidth-test 203.0.113.1 duration=5s", detail: "WAN throughput within expected range", outcome: "pass", status: "pending" },
-        { label: "Check firewall connection count", command: "/ip firewall connection print count-only", detail: "Connection table 39,000 / 50,000", outcome: "fail", status: "pending" },
-        { label: "Verify QoS / queue configuration", command: "/queue simple print stats", detail: "No queue saturation detected", outcome: "pass", status: "pending" },
-        { label: "Test upstream bandwidth", command: "/tool speed-test address=10.0.0.2", detail: "Upstream test is stable", outcome: "pass", status: "pending" },
-      ];
-      result = {
-        cause: "High connection tracking pressure",
-        fix: "Bandwidth is not the primary issue. Connection tracking and memory pressure are likely degrading responsiveness.",
-        risk: "High",
-        confidence: "High",
-        evidence: ["Memory warning is present", "Connection table at 78%", "Bandwidth test passes", "Queue saturation not detected"],
-        safeFixDraft: [
-          "/ip firewall connection print where connection-type~\"tcp\"",
-          "/ip firewall connection tracking print",
-          "/ip firewall filter add chain=forward connection-limit=200,32 action=drop comment=review-rate-limit-draft disabled=yes",
-        ],
-        verification: ["Connection table drops below 60%", "CPU/memory trend stabilizes", "User latency improves without false-positive blocking"],
-      };
-    } else {
-      steps = [
-        { label: "Ping target device", command: "/ping 192.168.88.50 count=4", detail: "No reply from target", outcome: "fail", status: "pending" },
-        { label: "Check ARP table", command: "/ip arp print where address=192.168.88.50", detail: "No active ARP entry", outcome: "fail", status: "pending" },
-        { label: "Verify firewall rules", command: "/ip firewall filter print", detail: "No explicit LAN-to-LAN drop found", outcome: "pass", status: "pending" },
-        { label: "Check routing table", command: "/ip route print where dst-address~\"192.168.88.0\"", detail: "Connected route exists", outcome: "pass", status: "pending" },
-        { label: "Verify bridge/VLAN config", command: "/interface bridge port print", detail: "Target VLAN not present on access port", outcome: "fail", status: "pending" },
-      ];
-      result = {
-        cause: "Likely access-port or VLAN mismatch",
-        fix: "Routing and firewall look acceptable, but the target has no ARP entry and its VLAN is missing from the access path.",
-        risk: "High",
-        confidence: "Medium",
-        evidence: ["Ping fails", "No ARP entry", "Connected route exists", "Bridge/VLAN check fails"],
-        safeFixDraft: [
-          "/interface bridge vlan print",
-          "/interface bridge port print detail",
-          "/interface bridge vlan add bridge=bridge1 tagged=bridge1 untagged=ether5 vlan-ids=20 disabled=yes comment=review-before-enable",
-        ],
-        verification: ["Target MAC appears in bridge host table", "Ping target succeeds", "No unintended VLAN leak to other access ports"],
-      };
+    if (!response.ok || !response.data) {
+      setApiError("Failed to fetch diagnostic data. Device may be unreachable.");
+      setRunningDiagnostic(null);
+      return;
     }
+
+    const scenario = response.data;
+    const steps: DiagnosticStep[] = scenario.steps.map((s) => ({
+      label: s.label,
+      status: "pending" as const,
+      command: s.command,
+      detail: s.detail,
+      outcome: s.outcome,
+    }));
 
     setDiagnosticSteps(steps);
 
@@ -181,9 +117,9 @@ export function Troubleshoot({ isDark, mode, onAuditLog, onQueueChange, onOpenQu
         } else {
           clearInterval(interval);
           setTimeout(() => {
-            setDiagnosticResult(result);
+            setDiagnosticResult(scenario.result);
             setRunningDiagnostic(null);
-            logAuditEntry("diagnostic_run", `Diagnostic: ${type}`, "success", `Completed ${type} diagnostic — Cause: ${result.cause}`, result.risk);
+            logAuditEntry("diagnostic_run", `Diagnostic: ${type}`, "success", `Completed ${type} diagnostic — Cause: ${scenario.result.cause}`, scenario.result.risk);
             onAuditLog?.();
           }, 500);
         }
@@ -196,7 +132,9 @@ export function Troubleshoot({ isDark, mode, onAuditLog, onQueueChange, onOpenQu
     if (!diagnosticResult) return null;
     const lines = [
       "MikroTik Manager Diagnostic Report",
-      "Device: RB4011iGS+5HacQ2HnD",
+      `Device: ${activeDevice.name} (${activeDevice.model})`,
+      `IP: ${activeDevice.ip}`,
+      `Status: ${activeDevice.status}`,
       `Likely cause: ${diagnosticResult.cause}`,
       `Confidence: ${diagnosticResult.confidence}`,
       `Risk: ${diagnosticResult.risk}`,
@@ -383,6 +321,28 @@ Status: Link operating near maximum capacity`);
           Save Diagnostic Report
         </button>
       </div>
+
+      {/* API Error */}
+      {apiError && <ErrorBanner isDark={isDark} message={apiError} />}
+
+      {/* Offline Device Warning */}
+      {isDeviceOffline && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
+          background: `${t.red}15`, border: `1px solid ${t.red}40`, borderRadius: 10,
+          marginBottom: 16,
+        }}>
+          <WifiOff size={16} color={t.red} />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: t.red }}>
+              Device Offline — {activeDevice.name}
+            </div>
+            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>
+              This device ({activeDevice.model}) is currently unreachable. Diagnostics will run in offline mode with limited data. Physical access or OOB management may be required.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Guided Diagnostics */}
       <div style={{ marginBottom: 24 }}>
