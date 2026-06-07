@@ -35,6 +35,9 @@ export function useKeyboardShortcuts({
         case "d":
           if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setActiveNav("dashboard"); }
           break;
+        case "f":
+          if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setActiveNav("fleet"); }
+          break;
         case "l":
           if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setActiveNav("logs"); }
           break;

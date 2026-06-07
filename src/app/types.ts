@@ -1,4 +1,4 @@
-export type NavItem = "dashboard" | "devices" | "connect" | "config" | "logs" | "troubleshoot" | "settings" | "wifi-settings";
+export type NavItem = "dashboard" | "fleet" | "devices" | "connect" | "config" | "logs" | "troubleshoot" | "settings" | "wifi-settings";
 export type AppMode = "beginner" | "pro";
 export type AppTheme = "dark" | "light";
 

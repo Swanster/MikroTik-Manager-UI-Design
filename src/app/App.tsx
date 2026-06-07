@@ -9,6 +9,7 @@ import { CommandQueuePanel } from "./components/CommandQueuePanel";
 import { ApprovalModal } from "./components/ApprovalModal";
 import { ToastProvider, useToast } from "./components/Toast";
 import { Dashboard } from "./components/views/Dashboard";
+import { FleetDashboard } from "./components/views/FleetDashboard";
 import { Devices } from "./components/views/Devices";
 import { ConnectDevice } from "./components/views/ConnectDevice";
 import { Logs } from "./components/views/Logs";
@@ -124,6 +125,16 @@ function AppContent() {
                 mode={mode}
                 activeDeviceId={activeDeviceId}
                 onDeviceChange={(id) => { setActiveDeviceId(id); }}
+              />
+            </div>
+          )}
+          {activeNav === "fleet" && (
+            <div style={{ height: "100%", overflow: "auto" }}>
+              <FleetDashboard
+                isDark={isDark}
+                mode={mode}
+                onDeviceSelect={(id) => { setActiveDeviceId(id); }}
+                setActiveNav={setActiveNav}
               />
             </div>
           )}

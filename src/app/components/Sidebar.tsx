@@ -1,10 +1,11 @@
-import { LayoutDashboard, Server, Settings, FileCode, ScrollText, Wrench, Wifi, ChevronRight, PlusCircle } from "lucide-react";
+import { LayoutDashboard, Server, Settings, FileCode, ScrollText, Wrench, Wifi, ChevronRight, PlusCircle, Radar } from "lucide-react";
 import type { NavItem } from "../types";
 import { getTheme } from "./theme";
 import { DEVICE_PROFILES } from "../services/mockRouterOSApi";
 
 const navItems = [
   { id: "dashboard" as NavItem, label: "Dashboard", icon: LayoutDashboard },
+  { id: "fleet" as NavItem, label: "Fleet", icon: Radar },
   { id: "devices" as NavItem, label: "Devices", icon: Server },
   { id: "connect" as NavItem, label: "Add Device", icon: PlusCircle },
   { id: "wifi-settings" as NavItem, label: "Wi-Fi Settings", icon: Wifi },
