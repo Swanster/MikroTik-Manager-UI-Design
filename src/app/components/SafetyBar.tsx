@@ -19,36 +19,42 @@ export function SafetyBar({ isDark, safety }: SafetyBarProps) {
       value: safety.connection === "online" ? "Online" : safety.connection === "degraded" ? "Degraded" : "Offline",
       tone: safety.connection === "online" ? "safe" : safety.connection === "degraded" ? "warning" : "danger",
       icon: Wifi,
+      pulse: safety.connection === "online",
     },
     {
       label: "Access",
       value: safety.access === "full" ? "Full access" : "Read-only",
       tone: safety.access === "full" ? "info" : "warning",
       icon: Lock,
+      pulse: false,
     },
     {
       label: "TLS",
       value: safety.tls ? "Enabled" : "Disabled",
       tone: safety.tls ? "safe" : "warning",
       icon: ShieldCheck,
+      pulse: false,
     },
     {
       label: "Last Backup",
       value: safety.lastBackup,
       tone: safety.lastBackup === "Never" ? "danger" : "safe",
       icon: Clock,
+      pulse: false,
     },
     {
       label: "Safe Mode",
       value: safety.safeMode === "ready" ? "Ready" : "Not available",
       tone: safety.safeMode === "ready" ? "safe" : "warning",
       icon: RotateCcw,
+      pulse: false,
     },
     {
       label: "Pending Changes",
       value: String(safety.pendingChanges),
       tone: safety.pendingChanges === 0 ? "safe" : "warning",
       icon: AlertTriangle,
+      pulse: false,
     },
   ] as const;
 
@@ -100,12 +106,31 @@ export function SafetyBar({ isDark, safety }: SafetyBarProps) {
                 whiteSpace: "nowrap",
               }}
             >
+              {item.pulse && (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: c.icon,
+                    boxShadow: `0 0 6px ${c.icon}`,
+                    animation: "safetyPulse 2s ease-in-out infinite",
+                    flexShrink: 0,
+                  }}
+                />
+              )}
               <Icon size={11} color={c.icon} />
               <span style={{ color: t.textSubtle, fontSize: 10, fontWeight: 600 }}>{item.label}:</span>
               <span style={{ color: c.text, fontSize: 10, fontWeight: 700 }}>{item.value}</span>
             </div>
           );
         })}
+        <style>{`
+          @keyframes safetyPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+          }
+        `}</style>
       </div>
     </div>
   );

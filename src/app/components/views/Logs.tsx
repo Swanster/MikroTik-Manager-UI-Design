@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Search, Download, Pause, Play, AlertTriangle, Info, XCircle,
   Bug, Shield, Wifi, Activity, Calendar, ChevronDown, X, Lightbulb,
@@ -8,36 +8,17 @@ import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
 import { addBatchToQueue } from "../../services/commandQueueService";
 import { logAuditEntry } from "../../services/auditLogService";
+import { fetchLogs, generateLiveLog } from "../../services/mockRouterOSApi";
+import { useFetch } from "../../services/useFetch";
+import { LoadingOverlay, ErrorBanner, LatencyBadge } from "../StatusComponents";
+import type { LogEntry as ServiceLogEntry, LogIntelligence as ServiceLogIntelligence, FixDraft as ServiceFixDraft } from "../../services/types";
 
 type LogLevel = "info" | "warning" | "error" | "debug";
-type LogEntry = {
-  id: number;
-  time: string;
-  level: LogLevel;
-  topic: string;
-  message: string;
-  raw?: string;
-  explanation?: string;
-  suggestedSteps?: string[];
-};
+type LogEntry = ServiceLogEntry;
+type LogIntelligence = ServiceLogIntelligence;
+type FixDraft = ServiceFixDraft;
 
-type LogIntelligence = {
-  confidence: string;
-  impact: string;
-  evidence: string[];
-  nextAction: string;
-  fixType: "read-only" | "config-draft" | "monitor";
-};
-
-type FixDraft = {
-  title: string;
-  risk: "Low" | "Medium" | "High";
-  safetyGate: string;
-  commands: string[];
-  verification: string[];
-};
-
-const allLogs: LogEntry[] = [
+const FALLBACK_LOGS: LogEntry[] = [
   {
     id: 1,
     time: "14:32:01.442",
@@ -310,8 +291,37 @@ export function Logs({ isDark, mode, onAuditLog, onQueueChange, onOpenQueue }: L
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
 
-  const [search, setSearch] = useState("");
+  // Fetch logs from service layer
+  const fetcher = useCallback(() => fetchLogs(), []);
+  const { data, loading, error, latency, timestamp, refetch } = useFetch(fetcher, {
+    refreshInterval: 0, // Manual refresh only
+    maxRetries: 2,
+  });
+
+  // Live log streaming
+  const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
+  const liveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Start/stop live streaming based on paused state
   const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (!paused) {
+      liveIntervalRef.current = setInterval(() => {
+        const newLog = generateLiveLog();
+        setLiveLogs((prev) => [newLog, ...prev].slice(0, 50)); // Keep max 50 live logs
+      }, 3000 + Math.random() * 4000); // Random 3-7s interval
+    }
+    return () => {
+      if (liveIntervalRef.current) clearInterval(liveIntervalRef.current);
+    };
+  }, [paused]);
+
+  // Merge fetched + live logs
+  const allLogs = [...liveLogs, ...(data?.logs ?? FALLBACK_LOGS)];
+  const intelligenceMap = data?.intelligence ?? {};
+  const fixDraftsMap = data?.fixDrafts ?? {};
+
+  const [search, setSearch] = useState("");
   const [topicFilters, setTopicFilters] = useState<Set<string>>(new Set());
   const [severityFilter, setSeverityFilter] = useState<LogLevel | "all">("all");
   const [timeRange, setTimeRange] = useState("1h");
@@ -354,7 +364,13 @@ export function Logs({ isDark, mode, onAuditLog, onQueueChange, onOpenQueue }: L
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: ui, color: t.text, overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: ui, color: t.text, overflow: "hidden", position: "relative" }}>
+      {/* Loading overlay for initial load */}
+      {loading && !data && <LoadingOverlay isDark={isDark} />}
+
+      {/* Error banner */}
+      {error && <ErrorBanner isDark={isDark} message={error} onRetry={refetch} />}
+
       {/* Top toolbar */}
       <div
         style={{
@@ -731,7 +747,10 @@ export function Logs({ isDark, mode, onAuditLog, onQueueChange, onOpenQueue }: L
             <span>
               {filtered.length} / {allLogs.length} entries
             </span>
-            <span style={{ marginLeft: "auto" }}>RB4011iGS+5HacQ2HnD</span>
+            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+              <LatencyBadge isDark={isDark} latency={latency} timestamp={timestamp} />
+              RB4011iGS+5HacQ2HnD
+            </span>
           </div>
         </div>
 

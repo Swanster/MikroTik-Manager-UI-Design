@@ -8,6 +8,7 @@ import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
 import { addBatchToQueue } from "../../services/commandQueueService";
 import { logAuditEntry } from "../../services/auditLogService";
+import { ErrorBanner } from "../StatusComponents";
 
 type Tab = "ping" | "traceroute" | "dns" | "bandwidth" | "torch";
 type DiagnosticType = "internet" | "wifi" | "slow" | "device";
@@ -47,6 +48,7 @@ export function Troubleshoot({ isDark, mode, onAuditLog, onQueueChange, onOpenQu
   const [runningDiagnostic, setRunningDiagnostic] = useState<DiagnosticType | null>(null);
   const [diagnosticSteps, setDiagnosticSteps] = useState<DiagnosticStep[]>([]);
   const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null);
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null);
   const [reportText, setReportText] = useState<string | null>(null);
   const [reportStatus, setReportStatus] = useState<string | null>(null);
 
@@ -338,6 +340,9 @@ Status: Link operating near maximum capacity`);
         boxSizing: "border-box",
       }}
     >
+      {/* Error banner */}
+      {diagnosticError && <ErrorBanner isDark={isDark} message={diagnosticError} onDismiss={() => setDiagnosticError(null)} />}
+
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
