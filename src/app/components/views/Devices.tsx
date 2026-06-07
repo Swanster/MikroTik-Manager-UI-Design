@@ -6,7 +6,7 @@ import {
 import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
 import { DEVICE_PROFILES } from "../../services/mockRouterOSApi";
-import type { DeviceProfile } from "../../services/types";
+import { EmptyState } from "../EmptyState";
 
 const devices = DEVICE_PROFILES.map((d) => ({
   ...d,
@@ -275,9 +275,12 @@ export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: Device
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div style={{ padding: "40px 24px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>
-            No devices match your search.
-          </div>
+          <EmptyState
+            isDark={isDark}
+            variant="no-results"
+            title="No devices match your search"
+            description={`No results for "${search}". Try a different search term.`}
+          />
         )}
       </div>
     </div>

@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuditLogPanel } from "./components/AuditLogPanel";
 import { CommandQueuePanel } from "./components/CommandQueuePanel";
 import { ApprovalModal } from "./components/ApprovalModal";
+import { ToastProvider, useToast } from "./components/Toast";
 import { Dashboard } from "./components/views/Dashboard";
 import { Devices } from "./components/views/Devices";
 import { ConnectDevice } from "./components/views/ConnectDevice";
@@ -18,9 +19,20 @@ import { WiFiSettings } from "./components/views/WiFiSettings";
 import type { NavItem, AppMode, AppTheme, SafetyState } from "./types";
 import { getQueue, approveCommand, rejectCommand, getPendingCount } from "./services/commandQueueService";
 import { logAuditEntry } from "./services/auditLogService";
+import { DEVICE_PROFILES } from "./services/mockRouterOSApi";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import type { QueuedCommand } from "./services/types";
 
 export default function App() {
+  return (
+    <ToastProvider isDark={true}>
+      <AppContent />
+    </ToastProvider>
+  );
+}
+
+function AppContent() {
+  const { addToast } = useToast();
   const [activeNav, setActiveNav] = useState<NavItem>("dashboard");
   const [mode, setMode] = useState<AppMode>("beginner");
   const [theme, setTheme] = useState<AppTheme>("dark");
@@ -47,6 +59,13 @@ export default function App() {
     setRefreshKey((k) => k + 1);
   }, []);
 
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    setActiveNav,
+    setActiveDeviceId,
+    deviceIds: DEVICE_PROFILES.map((d) => d.id),
+  });
+
   const handleApproveCommands = useCallback((ids: string[]) => {
     ids.forEach((id) => {
       const cmd = getQueue().find((c) => c.id === id);
@@ -55,8 +74,9 @@ export default function App() {
         logAuditEntry("command_approve", cmd.command, "success", `Approved: ${cmd.command}`, cmd.risk);
       }
     });
+    addToast("success", `${ids.length} command${ids.length > 1 ? "s" : ""} approved`, "Commands will be applied to the device.");
     triggerRefresh();
-  }, [triggerRefresh]);
+  }, [triggerRefresh, addToast]);
 
   const handleRejectCommands = useCallback((ids: string[]) => {
     ids.forEach((id) => {
@@ -66,8 +86,9 @@ export default function App() {
         logAuditEntry("command_reject", cmd.command, "cancelled", `Rejected: ${cmd.command}`, cmd.risk);
       }
     });
+    addToast("warning", `${ids.length} command${ids.length > 1 ? "s" : ""} rejected`, "Commands have been removed from the queue.");
     triggerRefresh();
-  }, [triggerRefresh]);
+  }, [triggerRefresh, addToast]);
 
   return (
     <div
