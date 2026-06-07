@@ -1,4 +1,4 @@
-import { useState, useId } from "react";
+import { useState, useId, useCallback } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line,
@@ -9,68 +9,37 @@ import {
 } from "lucide-react";
 import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
+import { fetchDashboard } from "../../services/mockRouterOSApi";
+import { useFetch } from "../../services/useFetch";
+import { LoadingOverlay, ErrorBanner, LatencyBadge } from "../StatusComponents";
+import type { DashboardData } from "../../services/types";
 
-const trafficData = [
-  { t: "00:00", rx: 18, tx: 8 },
-  { t: "01:00", rx: 12, tx: 5 },
-  { t: "02:00", rx: 8, tx: 4 },
-  { t: "03:00", rx: 7, tx: 3 },
-  { t: "04:00", rx: 9, tx: 4 },
-  { t: "05:00", rx: 11, tx: 5 },
-  { t: "06:00", rx: 22, tx: 9 },
-  { t: "07:00", rx: 45, tx: 18 },
-  { t: "08:00", rx: 78, tx: 32 },
-  { t: "09:00", rx: 92, tx: 41 },
-  { t: "10:00", rx: 88, tx: 38 },
-  { t: "11:00", rx: 95, tx: 44 },
-  { t: "12:00", rx: 82, tx: 36 },
-  { t: "13:00", rx: 76, tx: 33 },
-  { t: "14:00", rx: 89, tx: 39 },
-  { t: "15:00", rx: 94, tx: 42 },
-  { t: "16:00", rx: 98, tx: 45 },
-  { t: "17:00", rx: 87, tx: 38 },
-  { t: "18:00", rx: 72, tx: 31 },
-  { t: "19:00", rx: 65, tx: 28 },
-  { t: "20:00", rx: 58, tx: 24 },
-  { t: "21:00", rx: 48, tx: 20 },
-  { t: "22:00", rx: 35, tx: 15 },
-  { t: "23:00", rx: 24, tx: 10 },
+// Fallback static data (used while loading or on error)
+const FALLBACK_TRAFFIC = [
+  { t: "00:00", rx: 18, tx: 8 }, { t: "01:00", rx: 12, tx: 5 },
+  { t: "02:00", rx: 8, tx: 4 }, { t: "03:00", rx: 7, tx: 3 },
+  { t: "04:00", rx: 9, tx: 4 }, { t: "05:00", rx: 11, tx: 5 },
+  { t: "06:00", rx: 22, tx: 9 }, { t: "07:00", rx: 45, tx: 18 },
+  { t: "08:00", rx: 78, tx: 32 }, { t: "09:00", rx: 92, tx: 41 },
+  { t: "10:00", rx: 88, tx: 38 }, { t: "11:00", rx: 95, tx: 44 },
+  { t: "12:00", rx: 82, tx: 36 }, { t: "13:00", rx: 76, tx: 33 },
+  { t: "14:00", rx: 89, tx: 39 }, { t: "15:00", rx: 94, tx: 42 },
+  { t: "16:00", rx: 98, tx: 45 }, { t: "17:00", rx: 87, tx: 38 },
+  { t: "18:00", rx: 72, tx: 31 }, { t: "19:00", rx: 65, tx: 28 },
+  { t: "20:00", rx: 58, tx: 24 }, { t: "21:00", rx: 48, tx: 20 },
+  { t: "22:00", rx: 35, tx: 15 }, { t: "23:00", rx: 24, tx: 10 },
 ];
 
-const interfaces = [
-  {
-    name: "ether1", role: "WAN", status: "up", ip: "203.0.113.5/24",
-    tx: "12.4 MB/s", rx: "4.2 MB/s", type: "Ethernet",
-    sparkline: [8, 12, 15, 20, 18, 22, 25, 28, 24, 20, 18, 16, 14, 12],
-  },
-  {
-    name: "ether2", role: "LAN", status: "up", ip: "192.168.1.1/24",
-    tx: "3.1 MB/s", rx: "8.9 MB/s", type: "Ethernet",
-    sparkline: [5, 6, 8, 7, 9, 11, 10, 9, 8, 7, 6, 8, 9, 10],
-  },
-  {
-    name: "ether3", role: "LAN", status: "up", ip: "—",
-    tx: "0.2 MB/s", rx: "0.8 MB/s", type: "Ethernet",
-    sparkline: [1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1],
-  },
-  {
-    name: "ether4", role: "—", status: "down", ip: "—",
-    tx: "—", rx: "—", type: "Ethernet",
-    sparkline: [],
-  },
-  {
-    name: "wlan1", role: "AP", status: "up", ip: "192.168.2.1/24",
-    tx: "1.2 MB/s", rx: "2.4 MB/s", type: "Wireless",
-    sparkline: [3, 4, 5, 6, 5, 4, 6, 7, 6, 5, 4, 5, 6, 5],
-  },
-  {
-    name: "bridge1", role: "Bridge", status: "up", ip: "10.0.0.1/24",
-    tx: "5.4 MB/s", rx: "12.1 MB/s", type: "Bridge",
-    sparkline: [10, 12, 11, 13, 15, 14, 16, 15, 14, 13, 12, 14, 15, 16],
-  },
+const FALLBACK_INTERFACES = [
+  { name: "ether1", role: "WAN", status: "up" as const, ip: "203.0.113.5/24", tx: "12.4 MB/s", rx: "4.2 MB/s", type: "Ethernet", sparkline: [8, 12, 15, 20, 18, 22, 25, 28, 24, 20, 18, 16, 14, 12] },
+  { name: "ether2", role: "LAN", status: "up" as const, ip: "192.168.1.1/24", tx: "3.1 MB/s", rx: "8.9 MB/s", type: "Ethernet", sparkline: [5, 6, 8, 7, 9, 11, 10, 9, 8, 7, 6, 8, 9, 10] },
+  { name: "ether3", role: "LAN", status: "up" as const, ip: "—", tx: "0.2 MB/s", rx: "0.8 MB/s", type: "Ethernet", sparkline: [1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1] },
+  { name: "ether4", role: "—", status: "down" as const, ip: "—", tx: "—", rx: "—", type: "Ethernet", sparkline: [] },
+  { name: "wlan1", role: "AP", status: "up" as const, ip: "192.168.2.1/24", tx: "1.2 MB/s", rx: "2.4 MB/s", type: "Wireless", sparkline: [3, 4, 5, 6, 5, 4, 6, 7, 6, 5, 4, 5, 6, 5] },
+  { name: "bridge1", role: "Bridge", status: "up" as const, ip: "10.0.0.1/24", tx: "5.4 MB/s", rx: "12.1 MB/s", type: "Bridge", sparkline: [10, 12, 11, 13, 15, 14, 16, 15, 14, 13, 12, 14, 15, 16] },
 ];
 
-const clients = [
+const FALLBACK_CLIENTS = [
   { mac: "AA:BB:CC:DD:EE:01", ip: "192.168.1.45", name: "iPhone 14 Pro", since: "2h 14m" },
   { mac: "AA:BB:CC:DD:EE:02", ip: "192.168.1.32", name: "MacBook Pro", since: "5h 42m" },
   { mac: "AA:BB:CC:DD:EE:03", ip: "192.168.1.28", name: "Desktop-PC", since: "1d 3h" },
@@ -79,7 +48,7 @@ const clients = [
   { mac: "AA:BB:CC:DD:EE:06", ip: "192.168.2.14", name: "Galaxy S24", since: "3h 2m" },
 ];
 
-const alerts = [
+const FALLBACK_ALERTS = [
   { severity: "warning", title: "High CPU Usage", message: "CPU load at 87% for 5+ minutes", time: "2m ago" },
   { severity: "error", title: "Interface Down", message: "ether4 disconnected unexpectedly", time: "14m ago" },
   { severity: "warning", title: "Failed Login Attempt", message: "3 attempts from 185.220.101.47", time: "28m ago" },
@@ -94,12 +63,31 @@ interface DashboardProps {
 
 export function Dashboard({ isDark, mode }: DashboardProps) {
   const t = getTheme(isDark);
-  const [refreshing, setRefreshing] = useState(false);
   const uid = useId();
   const rxGradId = `rxGrad-${uid}`;
   const txGradId = `txGrad-${uid}`;
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
+
+  // Fetch data from mock API with auto-refresh every 10s
+  const fetcher = useCallback(() => fetchDashboard(), []);
+  const { data, loading, error, latency, timestamp, refetch, isRetrying, retryCount } = useFetch(fetcher, {
+    refreshInterval: 10000,
+    maxRetries: 2,
+  });
+
+  // Use fetched data or fallback
+  const dashData: DashboardData = data ?? {
+    system: { cpu: 23, memory: 41, uptime: "14d 7h 32m", temperature: 48, routerOS: "7.16.3", model: "RB5009UG+S+", serial: "HF4F09XXXXXX" },
+    interfaces: FALLBACK_INTERFACES,
+    clients: FALLBACK_CLIENTS,
+    traffic: FALLBACK_TRAFFIC,
+  };
+
+  const trafficData = dashData.traffic;
+  const interfacesList = dashData.interfaces;
+  const clientsList = dashData.clients;
+  const systemData = dashData.system;
 
   const cardStyle = {
     background: t.surface,
@@ -109,24 +97,26 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
     fontFamily: ui,
   };
 
-  function handleRefresh() {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
-  }
-
   return (
-    <div style={{ padding: 24, fontFamily: ui, color: t.text }}>
+    <div style={{ padding: 24, fontFamily: ui, color: t.text, position: "relative" }}>
+      {/* Loading overlay */}
+      {loading && !data && <LoadingOverlay isDark={isDark} isRetrying={isRetrying} retryCount={retryCount} />}
+
+      {/* Error banner */}
+      {error && <ErrorBanner isDark={isDark} message={error} onRetry={refetch} />}
+
       {/* Page header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <h2 style={{ color: t.text, margin: 0, fontSize: 16, fontWeight: 600 }}>System Overview</h2>
-          <p style={{ color: t.textMuted, margin: "2px 0 0", fontSize: 12 }}>
-            RB4011iGS+5HacQ2HnD · Last updated just now
-          </p>
+          <div style={{ color: t.textMuted, margin: "2px 0 0", fontSize: 12 }}>
+            {systemData.model} · <LatencyBadge isDark={isDark} latency={latency} timestamp={timestamp} />
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
-            onClick={handleRefresh}
+            onClick={refetch}
+            disabled={loading}
             style={{
               display: "flex",
               alignItems: "center",
@@ -144,7 +134,7 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.accent; e.currentTarget.style.color = t.accent; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textMuted; }}
           >
-            <RefreshCw size={12} style={{ transform: refreshing ? "rotate(360deg)" : "none", transition: "transform 0.8s linear" }} />
+            <RefreshCw size={12} style={{ transform: loading ? "rotate(360deg)" : "none", transition: "transform 0.8s linear" }} />
             Refresh
           </button>
           <button
@@ -175,7 +165,7 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
           icon={<Cpu size={16} color={t.accent} />}
           iconBg={t.accentBg}
           label="CPU Load"
-          value={23}
+          value={systemData.cpu}
           unit="%"
           sub="4 cores · 880 MHz"
           color={t.accent}
@@ -185,7 +175,7 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
           icon={<HardDrive size={16} color={t.amber} />}
           iconBg={t.amberBg}
           label="Memory"
-          value={26}
+          value={systemData.memory}
           unit="%"
           sub="512 MB / 2.0 GB"
           color={t.amber}
@@ -195,7 +185,7 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
           icon={<Clock size={16} color={t.green} />}
           iconBg={t.greenBg}
           label="Uptime"
-          value="47d 3h"
+          value={systemData.uptime}
           sub="Since May 20, 05:32"
           bar={null}
         />
@@ -204,7 +194,7 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
           icon={<Thermometer size={16} color="#F97316" />}
           iconBg={isDark ? "rgba(249,115,22,0.12)" : "rgba(249,115,22,0.08)"}
           label="Temperature"
-          value={42}
+          value={systemData.temperature ?? 0}
           unit="°C"
           sub="CPU sensor"
           color="#F97316"
@@ -238,7 +228,7 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
               <div>Traffic</div>
             </div>
             {/* Table rows */}
-            {interfaces.map((iface) => (
+            {interfacesList.map((iface) => (
               <div
                 key={iface.name}
                 style={{
@@ -413,9 +403,9 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
               <Wifi size={14} color={t.accent} />
               <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>Active Clients</div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: t.text, marginBottom: 12 }}>{clients.length}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: t.text, marginBottom: 12 }}>{clientsList.length}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 180, overflowY: "auto" }}>
-              {clients.map((client) => (
+              {clientsList.map((client) => (
                 <div
                   key={client.mac}
                   style={{
@@ -442,7 +432,7 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
           <div style={{ ...cardStyle, padding: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 12 }}>Alerts</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {alerts.map((alert, i) => {
+              {FALLBACK_ALERTS.map((alert, i) => {
                 const severityColors = {
                   error: { icon: t.red, bg: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.08)" },
                   warning: { icon: t.amber, bg: isDark ? "rgba(245,158,11,0.1)" : "rgba(245,158,11,0.08)" },

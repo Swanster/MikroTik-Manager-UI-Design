@@ -4,11 +4,19 @@ import type {
   ConfigSection,
   DiagnosticScenario,
   ApiResponse,
+  LogEntry,
 } from "./types";
 
 // Simulated network latency (ms)
 const MOCK_LATENCY_MIN = 80;
 const MOCK_LATENCY_MAX = 350;
+
+// Error simulation rate (0-1). Set to 0 to disable.
+let ERROR_RATE = 0;
+let TIMEOUT_RATE = 0;
+
+export function setErrorRate(rate: number) { ERROR_RATE = Math.max(0, Math.min(1, rate)); }
+export function setTimeoutRate(rate: number) { TIMEOUT_RATE = Math.max(0, Math.min(1, rate)); }
 
 function randomLatency(): number {
   return Math.floor(Math.random() * (MOCK_LATENCY_MAX - MOCK_LATENCY_MIN)) + MOCK_LATENCY_MIN;
@@ -18,6 +26,9 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function shouldSimulateError(): boolean { return Math.random() < ERROR_RATE; }
+function shouldSimulateTimeout(): boolean { return Math.random() < TIMEOUT_RATE; }
+
 function wrapResponse<T>(data: T): ApiResponse<T> {
   const latency = randomLatency();
   return {
@@ -26,6 +37,34 @@ function wrapResponse<T>(data: T): ApiResponse<T> {
     latency,
     timestamp: new Date().toISOString(),
   };
+}
+
+function wrapError<T>(message: string, latency: number): ApiResponse<T> {
+  return {
+    ok: false,
+    data: null as unknown as T,
+    latency,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// Helper: vary a number within ±range
+function vary(base: number, range: number): number {
+  return Math.max(0, Math.min(100, base + (Math.random() * range * 2 - range)));
+}
+
+// Helper: vary traffic sparkline
+function varySparkline(base: number[]): number[] {
+  return base.map((v) => Math.max(0, v + Math.floor(Math.random() * 6 - 3)));
+}
+
+// Helper: generate traffic point with variation
+function varyTraffic(points: { t: string; rx: number; tx: number }[]): { t: string; rx: number; tx: number }[] {
+  return points.map((p) => ({
+    t: p.t,
+    rx: Math.max(0, p.rx + Math.floor(Math.random() * 10 - 5)),
+    tx: Math.max(0, p.tx + Math.floor(Math.random() * 6 - 3)),
+  }));
 }
 
 // ============================================================
@@ -99,8 +138,37 @@ const DASHBOARD_DATA: DashboardData = {
 };
 
 export async function fetchDashboard(): Promise<ApiResponse<DashboardData>> {
-  await delay(randomLatency());
-  return wrapResponse(DASHBOARD_DATA);
+  const latency = randomLatency();
+  await delay(latency);
+
+  if (shouldSimulateTimeout()) {
+    await delay(5000);
+    return wrapError<DashboardData>("Connection timeout — device did not respond", latency + 5000);
+  }
+  if (shouldSimulateError()) {
+    return wrapError<DashboardData>("API Error: connection refused by device", latency);
+  }
+
+  // Return varied data to simulate live updates
+  const data: DashboardData = {
+    system: {
+      cpu: Math.round(vary(DASHBOARD_DATA.system.cpu, 8)),
+      memory: Math.round(vary(DASHBOARD_DATA.system.memory, 4)),
+      uptime: DASHBOARD_DATA.system.uptime,
+      temperature: DASHBOARD_DATA.system.temperature ? Math.round(vary(DASHBOARD_DATA.system.temperature, 3)) : null,
+      routerOS: DASHBOARD_DATA.system.routerOS,
+      model: DASHBOARD_DATA.system.model,
+      serial: DASHBOARD_DATA.system.serial,
+    },
+    interfaces: DASHBOARD_DATA.interfaces.map((iface) => ({
+      ...iface,
+      sparkline: varySparkline(iface.sparkline),
+    })),
+    clients: DASHBOARD_DATA.clients,
+    traffic: varyTraffic(DASHBOARD_DATA.traffic),
+  };
+
+  return wrapResponse(data);
 }
 
 // ============================================================
@@ -304,12 +372,47 @@ const FIX_DRAFTS: Record<number, { title: string; risk: "Low" | "Medium" | "High
 };
 
 export async function fetchLogs(): Promise<ApiResponse<LogsData>> {
-  await delay(randomLatency());
+  const latency = randomLatency();
+  await delay(latency);
+
+  if (shouldSimulateTimeout()) {
+    await delay(5000);
+    return wrapError<LogsData>("Connection timeout — log stream interrupted", latency + 5000);
+  }
+  if (shouldSimulateError()) {
+    return wrapError<LogsData>("API Error: failed to fetch logs", latency);
+  }
+
   return wrapResponse({
     logs: LOG_ENTRIES,
     intelligence: LOG_INTELLIGENCE,
     fixDrafts: FIX_DRAFTS,
   });
+}
+
+// Live log streaming simulation — generates new log entries
+const LIVE_LOG_POOL: Omit<LogEntry, "id">[] = [
+  { time: "", level: "info", topic: "dhcp", message: "assigned 192.168.1.99 to AA:BB:CC:DD:EE:99 (NEW-DEVICE)" },
+  { time: "", level: "info", topic: "wireless", message: "wlan1: client AA:BB:CC:DD:EE:77 connected on SSID 'HomeWiFi'" },
+  { time: "", level: "warning", topic: "firewall", message: "input chain: dropped connection from 91.134.X.X:random to 203.0.113.5:23 (telnet blocked)" },
+  { time: "", level: "info", topic: "system", message: "NTP synchronized with time.google.com" },
+  { time: "", level: "debug", topic: "routing", message: "OSPF: neighbor 10.0.0.2 state changed to Full" },
+  { time: "", level: "info", topic: "dhcp", message: "lease renewed for 192.168.1.32 (AA:BB:CC:DD:EE:02)" },
+  { time: "", level: "warning", topic: "system", message: "CPU usage spike detected: 72% for 10s" },
+  { time: "", level: "info", topic: "firewall", message: "forward chain: accepted outbound HTTPS from 192.168.1.45" },
+];
+
+let liveLogId = 1000;
+
+export function generateLiveLog(): LogEntry {
+  const template = LIVE_LOG_POOL[Math.floor(Math.random() * LIVE_LOG_POOL.length)];
+  const now = new Date();
+  const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}.${now.getMilliseconds().toString().padStart(3, "0")}`;
+  return {
+    ...template,
+    id: liveLogId++,
+    time,
+  };
 }
 
 // ============================================================
