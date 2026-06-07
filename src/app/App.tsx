@@ -38,6 +38,7 @@ export default function App() {
   const [queueOpen, setQueueOpen] = useState(false);
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeDeviceId, setActiveDeviceId] = useState<string>("rb5009-core");
 
   const isDark = theme === "dark";
   const bg = isDark ? "#0E0F12" : "#F4F5F7";
@@ -97,12 +98,22 @@ export default function App() {
           <ErrorBoundary isDark={isDark} resetKey={activeNav}>
           {activeNav === "dashboard" && (
             <div style={{ height: "100%", overflow: "auto" }}>
-              <Dashboard isDark={isDark} mode={mode} />
+              <Dashboard
+                isDark={isDark}
+                mode={mode}
+                activeDeviceId={activeDeviceId}
+                onDeviceChange={(id) => { setActiveDeviceId(id); }}
+              />
             </div>
           )}
           {activeNav === "devices" && (
             <div style={{ height: "100%", overflow: "auto" }}>
-              <Devices isDark={isDark} mode={mode} />
+              <Devices
+                isDark={isDark}
+                mode={mode}
+                activeDeviceId={activeDeviceId}
+                onDeviceSelect={(id) => { setActiveDeviceId(id); setActiveNav("dashboard"); }}
+              />
             </div>
           )}
           {activeNav === "connect" && (

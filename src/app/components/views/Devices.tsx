@@ -1,56 +1,35 @@
 import { useState } from "react";
 import {
   Plus, Search, RefreshCw, MoreHorizontal, Cpu, HardDrive,
-  ChevronUp, ChevronDown, ExternalLink, Edit3, Trash2, Wifi,
+  ChevronUp, ChevronDown, ExternalLink, Edit3, Trash2, Wifi, LayoutDashboard,
 } from "lucide-react";
 import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
+import { DEVICE_PROFILES } from "../../services/mockRouterOSApi";
+import type { DeviceProfile } from "../../services/types";
 
-const devices = [
-  {
-    id: 1, name: "Core Router", model: "RB4011iGS+5HacQ2HnD", ip: "192.168.88.1",
-    status: "online", version: "7.14.3", cpu: 23, ram: 26, uptime: "47d 3h", location: "Server Room A",
-  },
-  {
-    id: 2, name: "Branch Office GW", model: "RB3011UiAS-RM", ip: "10.20.0.1",
-    status: "online", version: "7.13.5", cpu: 8, ram: 18, uptime: "12d 6h", location: "Branch NYC",
-  },
-  {
-    id: 3, name: "Edge-01", model: "CCR2004-1G-12S+2XS", ip: "203.0.113.1",
-    status: "online", version: "7.14.3", cpu: 45, ram: 62, uptime: "89d 14h", location: "DC Rack 3",
-  },
-  {
-    id: 4, name: "WiFi AP-01", model: "hAP ax³", ip: "192.168.88.5",
-    status: "warning", version: "7.12.1", cpu: 12, ram: 45, uptime: "3d 2h", location: "Office Floor 2",
-  },
-  {
-    id: 5, name: "VPN Concentrator", model: "RB1100AHx4", ip: "10.0.1.1",
-    status: "online", version: "7.14.3", cpu: 67, ram: 38, uptime: "120d 8h", location: "DC Rack 1",
-  },
-  {
-    id: 6, name: "Backup Router", model: "RB760iGS", ip: "192.168.89.1",
-    status: "offline", version: "7.11.2", cpu: 0, ram: 0, uptime: "—", location: "Cold Standby",
-  },
-  {
-    id: 7, name: "ISP-01 CPE", model: "LtAP mini LTE", ip: "192.168.100.1",
-    status: "online", version: "7.14.1", cpu: 5, ram: 22, uptime: "22d 11h", location: "Roof",
-  },
-];
+const devices = DEVICE_PROFILES.map((d) => ({
+  ...d,
+  id: d.id, // keep string id
+  idNum: 0, // placeholder for sort compatibility
+}));
 
 interface DevicesProps {
   isDark: boolean;
   mode: AppMode;
+  activeDeviceId?: string;
+  onDeviceSelect?: (id: string) => void;
 }
 
-export function Devices({ isDark, mode }: DevicesProps) {
+export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: DevicesProps) {
   const t = getTheme(isDark);
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<string>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [menuOpen, setMenuOpen] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   const filtered = devices
     .filter(
@@ -285,6 +264,7 @@ export function Devices({ isDark, mode }: DevicesProps) {
                           onClose={() => setMenuOpen(null)}
                           t={t}
                           device={device}
+                          onDeviceSelect={onDeviceSelect}
                         />
                       )}
                     </div>
@@ -328,12 +308,13 @@ function MiniBar({ value, color, t }: { value: number; color: string; t: ReturnT
 }
 
 function ContextMenu({
-  isDark, onClose, t, device,
+  isDark, onClose, t, device, onDeviceSelect,
 }: {
   isDark: boolean;
   onClose: () => void;
   t: ReturnType<typeof getTheme>;
   device: (typeof devices)[0];
+  onDeviceSelect?: (id: string) => void;
 }) {
   return (
     <>
@@ -347,6 +328,7 @@ function ContextMenu({
         }}
       >
         {[
+          { icon: <LayoutDashboard size={11} />, label: "View Dashboard", action: () => onDeviceSelect?.(device.id) },
           { icon: <ExternalLink size={11} />, label: "Open Terminal" },
           { icon: <Edit3 size={11} />, label: "Edit Device" },
           { icon: <RefreshCw size={11} />, label: "Reconnect" },
@@ -354,7 +336,7 @@ function ContextMenu({
         ].map((item) => (
           <button
             key={item.label}
-            onClick={onClose}
+            onClick={() => { item.action?.(); onClose(); }}
             style={{
               width: "100%", display: "flex", alignItems: "center", gap: 8,
               padding: "7px 10px", borderRadius: 5, border: "none",

@@ -5,11 +5,11 @@ import {
 } from "recharts";
 import {
   Cpu, HardDrive, Clock, Thermometer, RefreshCw, ArrowUp, ArrowDown,
-  Wifi, AlertTriangle, XCircle, Activity, Zap,
+  Wifi, AlertTriangle, XCircle, Activity, Zap, ChevronDown,
 } from "lucide-react";
 import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
-import { fetchDashboard } from "../../services/mockRouterOSApi";
+import { fetchDashboard, DEVICE_PROFILES } from "../../services/mockRouterOSApi";
 import { useFetch } from "../../services/useFetch";
 import { LoadingOverlay, ErrorBanner, LatencyBadge } from "../StatusComponents";
 import type { DashboardData } from "../../services/types";
@@ -59,18 +59,22 @@ const FALLBACK_ALERTS = [
 interface DashboardProps {
   isDark: boolean;
   mode: AppMode;
+  activeDeviceId: string;
+  onDeviceChange: (id: string) => void;
 }
 
-export function Dashboard({ isDark, mode }: DashboardProps) {
+export function Dashboard({ isDark, mode, activeDeviceId, onDeviceChange }: DashboardProps) {
   const t = getTheme(isDark);
   const uid = useId();
   const rxGradId = `rxGrad-${uid}`;
   const txGradId = `txGrad-${uid}`;
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const activeDevice = DEVICE_PROFILES.find((d) => d.id === activeDeviceId) ?? DEVICE_PROFILES[0];
 
   // Fetch data from mock API with auto-refresh every 10s
-  const fetcher = useCallback(() => fetchDashboard(), []);
+  const fetcher = useCallback(() => fetchDashboard(activeDeviceId), [activeDeviceId]);
   const { data, loading, error, latency, timestamp, refetch, isRetrying, retryCount } = useFetch(fetcher, {
     refreshInterval: 10000,
     maxRetries: 2,
@@ -107,10 +111,77 @@ export function Dashboard({ isDark, mode }: DashboardProps) {
 
       {/* Page header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h2 style={{ color: t.text, margin: 0, fontSize: 16, fontWeight: 600 }}>System Overview</h2>
-          <div style={{ color: t.textMuted, margin: "2px 0 0", fontSize: 12 }}>
-            {systemData.model} · <LatencyBadge isDark={isDark} latency={latency} timestamp={timestamp} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {/* Device Picker */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setPickerOpen(!pickerOpen)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "7px 13px",
+                background: t.surface2, border: `1px solid ${pickerOpen ? t.accent : t.border}`,
+                borderRadius: 7, cursor: "pointer", fontFamily: ui, fontSize: 12,
+                color: t.text, transition: "all 0.12s", minWidth: 200,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.accent; }}
+              onMouseLeave={(e) => { if (!pickerOpen) e.currentTarget.style.borderColor = t.border; }}
+            >
+              <div style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: activeDevice.status === "online" ? t.green : activeDevice.status === "warning" ? t.amber : t.red,
+                boxShadow: activeDevice.status === "online" ? `0 0 5px ${t.green}` : "none",
+                flexShrink: 0,
+              }} />
+              <span style={{ fontWeight: 600 }}>{activeDevice.name}</span>
+              <span style={{ color: t.textMuted, fontSize: 10 }}>{activeDevice.model}</span>
+              <ChevronDown size={12} style={{ marginLeft: "auto", color: t.textMuted, transform: pickerOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+            </button>
+            {pickerOpen && (
+              <>
+                <div onClick={() => setPickerOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 10 }} />
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 20,
+                  background: t.surface, border: `1px solid ${t.border}`,
+                  borderRadius: 8, boxShadow: t.shadow, minWidth: 260, padding: 4,
+                  maxHeight: 320, overflowY: "auto",
+                }}>
+                  {DEVICE_PROFILES.map((dev) => {
+                    const isActive = dev.id === activeDeviceId;
+                    const statusColor = dev.status === "online" ? t.green : dev.status === "warning" ? t.amber : t.red;
+                    return (
+                      <button
+                        key={dev.id}
+                        onClick={() => { onDeviceChange(dev.id); setPickerOpen(false); }}
+                        style={{
+                          width: "100%", display: "flex", alignItems: "center", gap: 10,
+                          padding: "8px 10px", borderRadius: 6, border: "none",
+                          background: isActive ? t.accentBg : "transparent",
+                          color: t.text, cursor: "pointer", fontFamily: ui, textAlign: "left",
+                          transition: "background 0.1s",
+                        }}
+                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = t.surface2; }}
+                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                      >
+                        <div style={{
+                          width: 7, height: 7, borderRadius: "50%", background: statusColor, flexShrink: 0,
+                          boxShadow: dev.status === "online" ? `0 0 5px ${statusColor}` : "none",
+                        }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 500 }}>{dev.name}</div>
+                          <div style={{ fontSize: 10, color: t.textMuted }}>{dev.model} · {dev.ip}</div>
+                        </div>
+                        <div style={{ fontSize: 10, color: t.textMuted }}>{dev.location}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+          <div>
+            <h2 style={{ color: t.text, margin: 0, fontSize: 16, fontWeight: 600 }}>System Overview</h2>
+            <div style={{ color: t.textMuted, margin: "2px 0 0", fontSize: 12 }}>
+              {systemData.model} · {activeDevice.ip} · <LatencyBadge isDark={isDark} latency={latency} timestamp={timestamp} />
+            </div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>

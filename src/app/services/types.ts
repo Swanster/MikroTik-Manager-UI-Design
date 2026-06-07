@@ -1,3 +1,19 @@
+// === Device Profile Types ===
+
+export interface DeviceProfile {
+  id: string;
+  name: string;
+  model: string;
+  ip: string;
+  location: string;
+  status: "online" | "warning" | "offline";
+  version: string;
+  serial: string;
+  cpu: number;
+  ram: number;
+  uptime: string;
+}
+
 // === RouterOS API Response Types ===
 
 export interface SystemHealth {

@@ -5,6 +5,7 @@ import type {
   DiagnosticScenario,
   ApiResponse,
   LogEntry,
+  DeviceProfile,
 } from "./types";
 
 // Simulated network latency (ms)
@@ -65,6 +66,257 @@ function varyTraffic(points: { t: string; rx: number; tx: number }[]): { t: stri
     rx: Math.max(0, p.rx + Math.floor(Math.random() * 10 - 5)),
     tx: Math.max(0, p.tx + Math.floor(Math.random() * 6 - 3)),
   }));
+}
+
+// ============================================================
+// Device Profiles
+// ============================================================
+
+export const DEVICE_PROFILES: DeviceProfile[] = [
+  {
+    id: "rb5009-core",
+    name: "Core Router",
+    model: "RB5009UG+S+",
+    ip: "192.168.88.1",
+    location: "Server Room A",
+    status: "online",
+    version: "7.16.3",
+    serial: "HF4F09XXXXXX",
+    cpu: 23,
+    ram: 41,
+    uptime: "14d 7h 32m",
+  },
+  {
+    id: "rb4011-branch",
+    name: "Branch Office GW",
+    model: "RB4011iGS+5HacQ2HnD",
+    ip: "10.20.0.1",
+    location: "Branch Jakarta",
+    status: "online",
+    version: "7.14.3",
+    serial: "HF4F11YYYYYY",
+    cpu: 18,
+    ram: 32,
+    uptime: "47d 3h 15m",
+  },
+  {
+    id: "ccr2004-edge",
+    name: "Edge-01",
+    model: "CCR2004-1G-12S+2XS",
+    ip: "203.0.113.1",
+    location: "DC Rack 3",
+    status: "online",
+    version: "7.14.3",
+    serial: "HF4C04ZZZZZZ",
+    cpu: 45,
+    ram: 62,
+    uptime: "89d 14h 22m",
+  },
+  {
+    id: "hap-ax3-wifi",
+    name: "WiFi AP-01",
+    model: "hAP ax³",
+    ip: "192.168.88.5",
+    location: "Office Floor 2",
+    status: "warning",
+    version: "7.12.1",
+    serial: "HF4H03AAAAAA",
+    cpu: 12,
+    ram: 45,
+    uptime: "3d 2h 8m",
+  },
+  {
+    id: "rb760-standby",
+    name: "Backup Router",
+    model: "RB760iGS",
+    ip: "192.168.89.1",
+    location: "Cold Standby",
+    status: "offline",
+    version: "7.11.2",
+    serial: "HF4F76BBBBBB",
+    cpu: 0,
+    ram: 0,
+    uptime: "—",
+  },
+];
+
+// Per-device dashboard data
+const DEVICE_DASHBOARDS: Record<string, DashboardData> = {
+  "rb5009-core": {
+    system: {
+      cpu: 23, memory: 41, uptime: "14d 7h 32m", temperature: 48,
+      routerOS: "7.16.3", model: "RB5009UG+S+", serial: "HF4F09XXXXXX",
+    },
+    interfaces: [
+      { name: "ether1", role: "WAN", status: "up", ip: "203.0.113.5/24", tx: "12.4 MB/s", rx: "4.2 MB/s", type: "Ethernet", sparkline: [8, 12, 15, 20, 18, 22, 25, 28, 24, 20, 18, 16, 14, 12] },
+      { name: "ether2", role: "LAN", status: "up", ip: "192.168.1.1/24", tx: "3.1 MB/s", rx: "8.9 MB/s", type: "Ethernet", sparkline: [5, 6, 8, 7, 9, 11, 10, 9, 8, 7, 6, 8, 9, 10] },
+      { name: "ether3", role: "LAN", status: "up", ip: "—", tx: "0.2 MB/s", rx: "0.8 MB/s", type: "Ethernet", sparkline: [1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1] },
+      { name: "ether4", role: "—", status: "down", ip: "—", tx: "—", rx: "—", type: "Ethernet", sparkline: [] },
+      { name: "wlan1", role: "AP", status: "up", ip: "192.168.2.1/24", tx: "1.2 MB/s", rx: "2.4 MB/s", type: "Wireless", sparkline: [3, 4, 5, 6, 5, 4, 6, 7, 6, 5, 4, 5, 6, 5] },
+      { name: "bridge1", role: "Bridge", status: "up", ip: "10.0.0.1/24", tx: "5.4 MB/s", rx: "12.1 MB/s", type: "Bridge", sparkline: [10, 12, 11, 13, 15, 14, 16, 15, 14, 13, 12, 14, 15, 16] },
+    ],
+    clients: [
+      { mac: "AA:BB:CC:DD:EE:01", ip: "192.168.1.45", name: "iPhone 14 Pro", since: "2h 14m" },
+      { mac: "AA:BB:CC:DD:EE:02", ip: "192.168.1.32", name: "MacBook Pro", since: "5h 42m" },
+      { mac: "AA:BB:CC:DD:EE:03", ip: "192.168.1.28", name: "Desktop-PC", since: "1d 3h" },
+      { mac: "AA:BB:CC:DD:EE:04", ip: "192.168.1.56", name: "Smart TV", since: "4h 8m" },
+      { mac: "AA:BB:CC:DD:EE:05", ip: "192.168.1.67", name: "iPad Air", since: "18m" },
+      { mac: "AA:BB:CC:DD:EE:06", ip: "192.168.2.14", name: "Galaxy S24", since: "3h 2m" },
+    ],
+    traffic: [
+      { t: "00:00", rx: 18, tx: 8 }, { t: "01:00", rx: 12, tx: 5 },
+      { t: "02:00", rx: 8, tx: 4 }, { t: "03:00", rx: 7, tx: 3 },
+      { t: "04:00", rx: 9, tx: 4 }, { t: "05:00", rx: 11, tx: 5 },
+      { t: "06:00", rx: 22, tx: 9 }, { t: "07:00", rx: 45, tx: 18 },
+      { t: "08:00", rx: 78, tx: 32 }, { t: "09:00", rx: 92, tx: 41 },
+      { t: "10:00", rx: 88, tx: 38 }, { t: "11:00", rx: 95, tx: 44 },
+      { t: "12:00", rx: 82, tx: 36 }, { t: "13:00", rx: 76, tx: 33 },
+      { t: "14:00", rx: 89, tx: 39 }, { t: "15:00", rx: 94, tx: 42 },
+      { t: "16:00", rx: 98, tx: 45 }, { t: "17:00", rx: 87, tx: 38 },
+      { t: "18:00", rx: 72, tx: 31 }, { t: "19:00", rx: 65, tx: 28 },
+      { t: "20:00", rx: 58, tx: 24 }, { t: "21:00", rx: 48, tx: 20 },
+      { t: "22:00", rx: 35, tx: 15 }, { t: "23:00", rx: 24, tx: 10 },
+    ],
+  },
+  "rb4011-branch": {
+    system: {
+      cpu: 18, memory: 32, uptime: "47d 3h 15m", temperature: 42,
+      routerOS: "7.14.3", model: "RB4011iGS+5HacQ2HnD", serial: "HF4F11YYYYYY",
+    },
+    interfaces: [
+      { name: "ether1", role: "WAN", status: "up", ip: "10.20.0.1/24", tx: "5.2 MB/s", rx: "2.1 MB/s", type: "Ethernet", sparkline: [4, 6, 8, 5, 7, 9, 10, 8, 7, 6, 5, 7, 8, 6] },
+      { name: "ether2", role: "LAN", status: "up", ip: "10.20.1.1/24", tx: "2.3 MB/s", rx: "4.8 MB/s", type: "Ethernet", sparkline: [3, 4, 5, 4, 6, 5, 4, 3, 5, 6, 5, 4, 3, 4] },
+      { name: "ether3", role: "LAN", status: "up", ip: "10.20.2.1/24", tx: "1.1 MB/s", rx: "2.3 MB/s", type: "Ethernet", sparkline: [2, 2, 3, 2, 3, 4, 3, 2, 2, 3, 2, 2, 3, 2] },
+      { name: "wlan1", role: "AP", status: "up", ip: "10.20.3.1/24", tx: "0.8 MB/s", rx: "1.5 MB/s", type: "Wireless", sparkline: [1, 2, 2, 3, 2, 2, 3, 2, 1, 2, 2, 1, 2, 2] },
+      { name: "sfp-sfpplus1", role: "Uplink", status: "up", ip: "10.20.0.2/30", tx: "45 MB/s", rx: "38 MB/s", type: "SFP+", sparkline: [30, 35, 40, 38, 42, 45, 48, 44, 40, 38, 42, 45, 43, 41] },
+    ],
+    clients: [
+      { mac: "11:22:33:44:55:01", ip: "10.20.1.100", name: "Branch-PC-01", since: "8h 22m" },
+      { mac: "11:22:33:44:55:02", ip: "10.20.1.101", name: "Branch-PC-02", since: "6h 15m" },
+      { mac: "11:22:33:44:55:03", ip: "10.20.1.102", name: "Printer-HP", since: "12d 4h" },
+      { mac: "11:22:33:44:55:04", ip: "10.20.2.50", name: "VoIP-Phone-01", since: "2d 1h" },
+    ],
+    traffic: [
+      { t: "00:00", rx: 5, tx: 2 }, { t: "01:00", rx: 3, tx: 1 },
+      { t: "02:00", rx: 2, tx: 1 }, { t: "03:00", rx: 2, tx: 1 },
+      { t: "04:00", rx: 3, tx: 1 }, { t: "05:00", rx: 4, tx: 2 },
+      { t: "06:00", rx: 10, tx: 4 }, { t: "07:00", rx: 25, tx: 10 },
+      { t: "08:00", rx: 45, tx: 18 }, { t: "09:00", rx: 52, tx: 22 },
+      { t: "10:00", rx: 48, tx: 20 }, { t: "11:00", rx: 50, tx: 21 },
+      { t: "12:00", rx: 40, tx: 16 }, { t: "13:00", rx: 42, tx: 17 },
+      { t: "14:00", rx: 55, tx: 23 }, { t: "15:00", rx: 58, tx: 25 },
+      { t: "16:00", rx: 60, tx: 26 }, { t: "17:00", rx: 52, tx: 22 },
+      { t: "18:00", rx: 35, tx: 14 }, { t: "19:00", rx: 28, tx: 11 },
+      { t: "20:00", rx: 20, tx: 8 }, { t: "21:00", rx: 15, tx: 6 },
+      { t: "22:00", rx: 10, tx: 4 }, { t: "23:00", rx: 7, tx: 3 },
+    ],
+  },
+  "ccr2004-edge": {
+    system: {
+      cpu: 45, memory: 62, uptime: "89d 14h 22m", temperature: 55,
+      routerOS: "7.14.3", model: "CCR2004-1G-12S+2XS", serial: "HF4C04ZZZZZZ",
+    },
+    interfaces: [
+      { name: "ether1", role: "Mgmt", status: "up", ip: "203.0.113.1/24", tx: "0.5 MB/s", rx: "0.3 MB/s", type: "Ethernet", sparkline: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] },
+      { name: "sfp-sfpplus1", role: "WAN-1", status: "up", ip: "203.0.113.2/30", tx: "120 MB/s", rx: "95 MB/s", type: "SFP+", sparkline: [80, 90, 95, 88, 100, 110, 120, 115, 108, 95, 88, 92, 100, 105] },
+      { name: "sfp-sfpplus2", role: "WAN-2", status: "up", ip: "203.0.113.6/30", tx: "80 MB/s", rx: "72 MB/s", type: "SFP+", sparkline: [50, 55, 60, 58, 65, 70, 80, 75, 68, 60, 55, 62, 70, 72] },
+      { name: "sfp28-1", role: "Core-Link", status: "up", ip: "10.0.0.1/30", tx: "200 MB/s", rx: "180 MB/s", type: "SFP28", sparkline: [150, 160, 170, 165, 180, 190, 200, 195, 185, 170, 160, 175, 190, 195] },
+      { name: "sfp-sfpplus3", role: "—", status: "down", ip: "—", tx: "—", rx: "—", type: "SFP+", sparkline: [] },
+    ],
+    clients: [],
+    traffic: [
+      { t: "00:00", rx: 180, tx: 150 }, { t: "01:00", rx: 120, tx: 100 },
+      { t: "02:00", rx: 80, tx: 65 }, { t: "03:00", rx: 60, tx: 50 },
+      { t: "04:00", rx: 70, tx: 55 }, { t: "05:00", rx: 90, tx: 75 },
+      { t: "06:00", rx: 200, tx: 170 }, { t: "07:00", rx: 350, tx: 280 },
+      { t: "08:00", rx: 480, tx: 400 }, { t: "09:00", rx: 520, tx: 430 },
+      { t: "10:00", rx: 500, tx: 420 }, { t: "11:00", rx: 510, tx: 425 },
+      { t: "12:00", rx: 450, tx: 370 }, { t: "13:00", rx: 430, tx: 360 },
+      { t: "14:00", rx: 490, tx: 410 }, { t: "15:00", rx: 530, tx: 440 },
+      { t: "16:00", rx: 550, tx: 460 }, { t: "17:00", rx: 500, tx: 420 },
+      { t: "18:00", rx: 380, tx: 310 }, { t: "19:00", rx: 300, tx: 250 },
+      { t: "20:00", rx: 250, tx: 200 }, { t: "21:00", rx: 200, tx: 160 },
+      { t: "22:00", rx: 150, tx: 120 }, { t: "23:00", rx: 100, tx: 80 },
+    ],
+  },
+  "hap-ax3-wifi": {
+    system: {
+      cpu: 12, memory: 45, uptime: "3d 2h 8m", temperature: 38,
+      routerOS: "7.12.1", model: "hAP ax³", serial: "HF4H03AAAAAA",
+    },
+    interfaces: [
+      { name: "ether1", role: "WAN", status: "up", ip: "192.168.88.5/24", tx: "8.5 MB/s", rx: "3.2 MB/s", type: "Ethernet", sparkline: [5, 6, 7, 8, 7, 6, 8, 9, 8, 7, 6, 7, 8, 7] },
+      { name: "ether2", role: "LAN", status: "up", ip: "192.168.50.1/24", tx: "2.1 MB/s", rx: "5.4 MB/s", type: "Ethernet", sparkline: [3, 4, 3, 4, 5, 4, 3, 4, 5, 4, 3, 4, 3, 4] },
+      { name: "wlan1", role: "2.4G", status: "up", ip: "—", tx: "1.8 MB/s", rx: "3.2 MB/s", type: "WiFi 6", sparkline: [2, 3, 3, 2, 3, 4, 3, 2, 3, 3, 2, 3, 2, 3] },
+      { name: "wlan2", role: "5G", status: "up", ip: "—", tx: "4.5 MB/s", rx: "8.1 MB/s", type: "WiFi 6", sparkline: [4, 5, 6, 7, 6, 5, 7, 8, 7, 6, 5, 6, 7, 6] },
+      { name: "bridge1", role: "Bridge", status: "up", ip: "192.168.50.1/24", tx: "6.2 MB/s", rx: "12.8 MB/s", type: "Bridge", sparkline: [8, 10, 9, 11, 12, 10, 11, 12, 11, 10, 9, 11, 10, 12] },
+    ],
+    clients: [
+      { mac: "AA:11:BB:22:CC:01", ip: "192.168.50.10", name: "Office-Laptop-01", since: "4h 10m" },
+      { mac: "AA:11:BB:22:CC:02", ip: "192.168.50.11", name: "Office-Laptop-02", since: "3h 45m" },
+      { mac: "AA:11:BB:22:CC:03", ip: "192.168.50.12", name: "Phone-Xiaomi", since: "1h 22m" },
+      { mac: "AA:11:BB:22:CC:04", ip: "192.168.50.13", name: "Smart-TVs", since: "6h 30m" },
+      { mac: "AA:11:BB:22:CC:05", ip: "192.168.50.14", name: "iPad-Kantor", since: "2h 5m" },
+      { mac: "AA:11:BB:22:CC:06", ip: "192.168.50.15", name: "Laptop-HR", since: "5h 12m" },
+      { mac: "AA:11:BB:22:CC:07", ip: "192.168.50.16", name: "Android-Tab", since: "30m" },
+      { mac: "AA:11:BB:22:CC:08", ip: "192.168.50.17", name: "MacBook-Air", since: "1h 55m" },
+    ],
+    traffic: [
+      { t: "00:00", rx: 8, tx: 4 }, { t: "01:00", rx: 5, tx: 2 },
+      { t: "02:00", rx: 3, tx: 1 }, { t: "03:00", rx: 2, tx: 1 },
+      { t: "04:00", rx: 3, tx: 1 }, { t: "05:00", rx: 5, tx: 2 },
+      { t: "06:00", rx: 12, tx: 5 }, { t: "07:00", rx: 28, tx: 12 },
+      { t: "08:00", rx: 42, tx: 18 }, { t: "09:00", rx: 55, tx: 24 },
+      { t: "10:00", rx: 60, tx: 26 }, { t: "11:00", rx: 58, tx: 25 },
+      { t: "12:00", rx: 48, tx: 20 }, { t: "13:00", rx: 50, tx: 22 },
+      { t: "14:00", rx: 62, tx: 27 }, { t: "15:00", rx: 65, tx: 28 },
+      { t: "16:00", rx: 58, tx: 25 }, { t: "17:00", rx: 52, tx: 22 },
+      { t: "18:00", rx: 35, tx: 15 }, { t: "19:00", rx: 25, tx: 10 },
+      { t: "20:00", rx: 18, tx: 8 }, { t: "21:00", rx: 12, tx: 5 },
+      { t: "22:00", rx: 8, tx: 3 }, { t: "23:00", rx: 6, tx: 2 },
+    ],
+  },
+  "rb760-standby": {
+    system: {
+      cpu: 0, memory: 0, uptime: "—", temperature: null,
+      routerOS: "7.11.2", model: "RB760iGS", serial: "HF4F76BBBBBB",
+    },
+    interfaces: [
+      { name: "ether1", role: "—", status: "down", ip: "—", tx: "—", rx: "—", type: "Ethernet", sparkline: [] },
+      { name: "ether2", role: "—", status: "down", ip: "—", tx: "—", rx: "—", type: "Ethernet", sparkline: [] },
+      { name: "ether3", role: "—", status: "down", ip: "—", tx: "—", rx: "—", type: "Ethernet", sparkline: [] },
+      { name: "ether4", role: "—", status: "down", ip: "—", tx: "—", rx: "—", type: "Ethernet", sparkline: [] },
+      { name: "ether5", role: "—", status: "down", ip: "—", tx: "—", rx: "—", type: "Ethernet", sparkline: [] },
+    ],
+    clients: [],
+    traffic: [],
+  },
+};
+
+// ============================================================
+// Device API
+// ============================================================
+
+export async function fetchDevices(): Promise<ApiResponse<DeviceProfile[]>> {
+  const latency = randomLatency();
+  await delay(latency);
+
+  if (shouldSimulateTimeout()) {
+    await delay(5000);
+    return wrapError<DeviceProfile[]>("Connection timeout — device list unavailable", latency + 5000);
+  }
+  if (shouldSimulateError()) {
+    return wrapError<DeviceProfile[]>("API Error: failed to fetch device list", latency);
+  }
+
+  // Vary CPU/RAM slightly on each fetch
+  const varied = DEVICE_PROFILES.map((d) => ({
+    ...d,
+    cpu: d.status === "offline" ? 0 : Math.round(vary(d.cpu, 5)),
+    ram: d.status === "offline" ? 0 : Math.round(vary(d.ram, 4)),
+  }));
+
+  return wrapResponse(varied);
 }
 
 // ============================================================
@@ -137,7 +389,7 @@ const DASHBOARD_DATA: DashboardData = {
   ],
 };
 
-export async function fetchDashboard(): Promise<ApiResponse<DashboardData>> {
+export async function fetchDashboard(deviceId?: string): Promise<ApiResponse<DashboardData>> {
   const latency = randomLatency();
   await delay(latency);
 
@@ -149,23 +401,27 @@ export async function fetchDashboard(): Promise<ApiResponse<DashboardData>> {
     return wrapError<DashboardData>("API Error: connection refused by device", latency);
   }
 
+  // Select device data — fall back to first device
+  const key = deviceId && DEVICE_DASHBOARDS[deviceId] ? deviceId : "rb5009-core";
+  const base = DEVICE_DASHBOARDS[key];
+
   // Return varied data to simulate live updates
   const data: DashboardData = {
     system: {
-      cpu: Math.round(vary(DASHBOARD_DATA.system.cpu, 8)),
-      memory: Math.round(vary(DASHBOARD_DATA.system.memory, 4)),
-      uptime: DASHBOARD_DATA.system.uptime,
-      temperature: DASHBOARD_DATA.system.temperature ? Math.round(vary(DASHBOARD_DATA.system.temperature, 3)) : null,
-      routerOS: DASHBOARD_DATA.system.routerOS,
-      model: DASHBOARD_DATA.system.model,
-      serial: DASHBOARD_DATA.system.serial,
+      cpu: Math.round(vary(base.system.cpu, 8)),
+      memory: Math.round(vary(base.system.memory, 4)),
+      uptime: base.system.uptime,
+      temperature: base.system.temperature ? Math.round(vary(base.system.temperature, 3)) : null,
+      routerOS: base.system.routerOS,
+      model: base.system.model,
+      serial: base.system.serial,
     },
-    interfaces: DASHBOARD_DATA.interfaces.map((iface) => ({
+    interfaces: base.interfaces.map((iface) => ({
       ...iface,
       sparkline: varySparkline(iface.sparkline),
     })),
-    clients: DASHBOARD_DATA.clients,
-    traffic: varyTraffic(DASHBOARD_DATA.traffic),
+    clients: base.clients,
+    traffic: base.traffic.length > 0 ? varyTraffic(base.traffic) : [],
   };
 
   return wrapResponse(data);
