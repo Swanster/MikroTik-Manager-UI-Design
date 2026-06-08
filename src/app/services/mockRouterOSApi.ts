@@ -922,6 +922,120 @@ export async function reconnectDevice(deviceId: string): Promise<ApiResponse<Dev
   return wrapResponse({ ...device, _prevStatus: prev } as DeviceProfile & { _prevStatus: string });
 }
 
+// ============================================================
+// Backup Snapshot Management (Batch 12)
+// ============================================================
+
+import type { BackupSnapshot } from "./types";
+
+// In-memory backup store keyed by device ID
+const BACKUP_STORE: Record<string, BackupSnapshot[]> = {};
+
+function initDefaultBackups(deviceId: string) {
+  if (BACKUP_STORE[deviceId]) return;
+  BACKUP_STORE[deviceId] = [
+    {
+      id: `${deviceId}-bak-001`,
+      deviceId,
+      name: "Pre-firewall-change backup",
+      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      size: "24 KB",
+      sections: ["/ip firewall filter", "/ip firewall nat"],
+      isAuto: false,
+      notes: "Before adding new firewall rules",
+    },
+    {
+      id: `${deviceId}-bak-002`,
+      deviceId,
+      name: "Auto backup",
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      size: "22 KB",
+      sections: ["/ip", "/interface", "/system"],
+      isAuto: true,
+    },
+    {
+      id: `${deviceId}-bak-003`,
+      deviceId,
+      name: "Weekly scheduled backup",
+      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      size: "21 KB",
+      sections: ["/ip", "/interface", "/system", "/wireless"],
+      isAuto: true,
+    },
+  ];
+}
+
+// Initialize all existing devices
+DEVICE_PROFILES.forEach((d) => initDefaultBackups(d.id));
+
+export async function getBackups(deviceId: string): Promise<ApiResponse<BackupSnapshot[]>> {
+  const latency = randomLatency();
+  await delay(latency);
+  initDefaultBackups(deviceId);
+  const sorted = [...BACKUP_STORE[deviceId]].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+  return wrapResponse(sorted);
+}
+
+export async function createBackup(
+  deviceId: string,
+  name?: string,
+  notes?: string
+): Promise<ApiResponse<BackupSnapshot>> {
+  const latency = randomLatency();
+  await delay(latency);
+  if (shouldSimulateError()) return wrapError("Failed to create backup", latency);
+  initDefaultBackups(deviceId);
+  const sections = ["/ip", "/interface", "/system"];
+  if (Math.random() > 0.5) sections.push("/wireless");
+  const snapshot: BackupSnapshot = {
+    id: `${deviceId}-bak-${Date.now()}`,
+    deviceId,
+    name: name || "Manual backup",
+    timestamp: new Date().toISOString(),
+    size: `${18 + Math.floor(Math.random() * 8)} KB`,
+    sections,
+    isAuto: false,
+    notes,
+  };
+  BACKUP_STORE[deviceId].push(snapshot);
+  return wrapResponse(snapshot);
+}
+
+export async function restoreBackup(
+  backupId: string
+): Promise<ApiResponse<{ success: boolean; restoredFrom: string }>> {
+  const latency = randomLatency();
+  await delay(latency);
+  if (shouldSimulateError()) return wrapError("Restore failed — device unreachable", latency);
+  // Find the backup across all devices
+  for (const deviceId of Object.keys(BACKUP_STORE)) {
+    const backup = BACKUP_STORE[deviceId].find((b) => b.id === backupId);
+    if (backup) {
+      return wrapResponse({
+        success: true,
+        restoredFrom: backup.name,
+      });
+    }
+  }
+  return wrapError("Backup not found", latency);
+}
+
+export async function deleteBackup(backupId: string): Promise<ApiResponse<boolean>> {
+  const latency = randomLatency();
+  await delay(latency);
+  if (shouldSimulateError()) return wrapError("Failed to delete backup", latency);
+  for (const deviceId of Object.keys(BACKUP_STORE)) {
+    const idx = BACKUP_STORE[deviceId].findIndex((b) => b.id === backupId);
+    if (idx !== -1) {
+      BACKUP_STORE[deviceId].splice(idx, 1);
+      return wrapResponse(true);
+    }
+  }
+  return wrapError("Backup not found", latency);
+}
+
 export async function executeCommand(command: string): Promise<ApiResponse<CommandResult>> {
   const latency = randomLatency();
   await delay(latency);

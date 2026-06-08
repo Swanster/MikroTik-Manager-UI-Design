@@ -181,6 +181,28 @@ export interface AuditEntry {
   risk: "Low" | "Medium" | "High";
 }
 
+// === Backup Snapshot Types ===
+
+export interface BackupSnapshot {
+  id: string;
+  deviceId: string;
+  name: string;
+  timestamp: string;
+  size: string;
+  sections: string[];
+  isAuto: boolean;
+  notes?: string;
+}
+
+// === Config Diff Types ===
+
+export interface ConfigDiffLine {
+  type: "added" | "removed" | "context" | "unchanged";
+  line: string;
+  oldLineNum?: number;
+  newLineNum?: number;
+}
+
 // === API Response Wrapper ===
 
 export interface ApiResponse<T> {

@@ -10,7 +10,8 @@ import { logAuditEntry } from "../../services/auditLogService";
 import { fetchConfig } from "../../services/mockRouterOSApi";
 import { useFetch } from "../../services/useFetch";
 import { LoadingOverlay, ErrorBanner, LatencyBadge } from "../StatusComponents";
-import type { ConfigSection } from "../../services/types";
+import { BackupSnapshotList } from "../BackupSnapshotList";
+import type { ConfigSection, ConfigDiffLine } from "../../services/types";
 
 const FALLBACK_CONFIG: ConfigSection[] = [
   {
@@ -227,6 +228,7 @@ export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activ
 
   const [rawConfig, setRawConfig] = useState(fullConfig);
   const [originalConfig] = useState(fullConfig);
+  const [showBackupList, setShowBackupList] = useState(false);
   const [validated, setValidated] = useState(false);
   const [backupCreated, setBackupCreated] = useState(true);
   const [lastBackup, setLastBackup] = useState("5 min ago");
@@ -244,6 +246,29 @@ export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activ
   const canPreviewDiff = hasPendingChanges && validated;
   const canBackupApply = hasPendingChanges && validated && backupCreated && !writeLocked;
   const affectedAreas = ["Firewall", "DHCP", "Wireless"];
+  const enhancedDiffLines: ConfigDiffLine[] = [
+    { type: "context", oldLineNum: 53, newLineNum: 53, line: 'add action=accept chain=input comment="Allow SSH from LAN" dst-port=22 protocol=tcp src-address=192.168.1.0/24' },
+    { type: "context", oldLineNum: 54, newLineNum: 54, line: 'add action=accept chain=input comment="Allow Winbox from LAN" dst-port=8291 protocol=tcp src-address=192.168.1.0/24' },
+    { type: "removed", oldLineNum: 56, line: 'add action=drop chain=input comment="Drop all other input"' },
+    { type: "added", newLineNum: 56, line: 'add action=drop chain=input comment="Drop all other input" log=yes log-prefix="INPUT-DROP"' },
+    { type: "context", oldLineNum: 57, newLineNum: 57, line: 'add action=accept chain=forward comment="Allow established/related" connection-state=established,related' },
+    { type: "context", oldLineNum: 76, newLineNum: 76, line: '/ip dhcp-server' },
+    { type: "added", newLineNum: 78, line: 'add address-pool=Guest-Pool disabled=no interface=wlan2 name=dhcp-guest lease-time=2h' },
+    { type: "context", oldLineNum: 79, newLineNum: 80, line: 'add address-pool=LAN-Pool disabled=no interface=bridge1 name=dhcp-lan lease-time=1d' },
+  ];
+  const diffSummary = {
+    added: enhancedDiffLines.filter((line) => line.type === "added").length,
+    removed: enhancedDiffLines.filter((line) => line.type === "removed").length,
+    context: enhancedDiffLines.filter((line) => line.type === "context").length,
+  };
+
+  function getCommandArea(line: string) {
+    if (line.includes("firewall")) return "Firewall";
+    if (line.includes("dhcp") || line.includes("Guest-Pool")) return "DHCP";
+    if (line.includes("wlan")) return "Wireless";
+    if (line.startsWith("/ip")) return "IP";
+    return "Config";
+  }
 
   function handleValidate() {
     if (!hasPendingChanges) return;
@@ -420,21 +445,21 @@ export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activ
             t={t}
           />
           <SafeActionButton
-            label={backupCreated ? `Backup: ${lastBackup}` : "Create Backup"}
+            label="Backups"
             icon={<HardDrive size={12} />}
             disabled={false}
             active={backupCreated}
             tone="safe"
-            onClick={handleCreateBackup}
+            onClick={() => setShowBackupList(true)}
             t={t}
           />
           <SafeActionButton
             label="Rollback"
             icon={<RotateCcw size={12} />}
-            disabled={!backupCreated}
+            disabled={false}
             active={false}
             tone="warning"
-            onClick={() => undefined}
+            onClick={() => setShowBackupList(true)}
             t={t}
           />
           <SafeActionButton
@@ -704,48 +729,114 @@ export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activ
               </div>
             </div>
             <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
-              {pendingChanges.map((change, i) => (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 10 }}>
+                <DiffMetric label="Added" value={`+${diffSummary.added}`} color={t.greenText} bg={t.greenBg} t={t} />
+                <DiffMetric label="Removed" value={`-${diffSummary.removed}`} color={t.red} bg={isDark ? "rgba(239,68,68,0.14)" : "rgba(239,68,68,0.08)"} t={t} />
+                <DiffMetric label="Context" value={`${diffSummary.context}`} color={t.textMuted} bg={t.surface2} t={t} />
+              </div>
+
+              <div
+                style={{
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 9,
+                  overflow: "hidden",
+                  background: isDark ? "#0B1020" : "#F8FAFC",
+                }}
+              >
                 <div
-                  key={i}
                   style={{
-                    marginBottom: 8,
-                    borderRadius: 7,
-                    overflow: "hidden",
-                    border: `1px solid ${t.border}`,
+                    display: "grid",
+                    gridTemplateColumns: "44px 44px 28px 1fr 78px",
+                    gap: 0,
+                    padding: "7px 0",
+                    background: t.surface2,
+                    borderBottom: `1px solid ${t.border}`,
+                    fontSize: 9,
+                    fontFamily: mono,
+                    color: t.textSubtle,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
                   }}
                 >
-                  <div
-                    style={{
-                      padding: "6px 10px",
-                      background: t.surface2,
-                      borderBottom: `1px solid ${t.border}`,
-                      fontSize: 10,
-                      color: t.textMuted,
-                      fontFamily: mono,
-                    }}
-                  >
-                    Line {change.lineNum}
-                  </div>
-                  <div
-                    style={{
-                      padding: "8px 10px",
-                      background: change.type === "removed" ? (isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.08)") : (isDark ? "rgba(34,197,94,0.1)" : "rgba(34,197,94,0.08)"),
-                      fontSize: 11,
-                      fontFamily: mono,
-                      lineHeight: 1.6,
-                      color: change.type === "removed" ? t.red : t.green,
-                      wordBreak: "break-all",
-                    }}
-                  >
-                    <span style={{ marginRight: 8, fontWeight: 600 }}>{change.type === "removed" ? "−" : "+"}</span>
-                    {change.line}
-                  </div>
+                  <div style={{ paddingLeft: 8 }}>Old</div>
+                  <div>New</div>
+                  <div>±</div>
+                  <div>Command</div>
+                  <div>Area</div>
                 </div>
-              ))}
+
+                {enhancedDiffLines.map((line, i) => {
+                  const isAdded = line.type === "added";
+                  const isRemoved = line.type === "removed";
+                  const area = getCommandArea(line.line);
+                  return (
+                    <div
+                      key={`${line.type}-${i}`}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "44px 44px 28px 1fr 78px",
+                        alignItems: "stretch",
+                        minHeight: 30,
+                        borderBottom: i === enhancedDiffLines.length - 1 ? "none" : `1px solid ${t.border}`,
+                        background: isAdded
+                          ? (isDark ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)")
+                          : isRemoved
+                            ? (isDark ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.08)")
+                            : "transparent",
+                      }}
+                    >
+                      <DiffLineCell value={line.oldLineNum?.toString() || ""} t={t} mono={mono} />
+                      <DiffLineCell value={line.newLineNum?.toString() || ""} t={t} mono={mono} />
+                      <div style={{ padding: "7px 0", color: isAdded ? t.greenText : isRemoved ? t.red : t.textSubtle, fontFamily: mono, fontWeight: 800, fontSize: 12, textAlign: "center" }}>
+                        {isAdded ? "+" : isRemoved ? "−" : " "}
+                      </div>
+                      <div style={{ padding: "7px 8px", color: isAdded ? t.greenText : isRemoved ? t.red : t.text, fontFamily: mono, fontSize: 10, lineHeight: 1.55, wordBreak: "break-word" }}>
+                        {line.line}
+                      </div>
+                      <div style={{ padding: "7px 8px" }}>
+                        <span style={{ padding: "2px 6px", borderRadius: 999, background: t.surface, border: `1px solid ${t.border}`, color: t.textMuted, fontSize: 9, fontWeight: 700 }}>
+                          {area}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Backup snapshot list modal */}
+      {showBackupList && (
+        <BackupSnapshotList
+          isDark={isDark}
+          deviceId={activeDeviceId || "rb5009-core"}
+          onClose={() => setShowBackupList(false)}
+          onRestore={() => {
+            setValidated(false);
+            setBackupCreated(true);
+            setLastBackup("just now");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DiffMetric({ label, value, color, bg, t }: { label: string; value: string; color: string; bg: string; t: ReturnType<typeof getTheme> }) {
+  return (
+    <div style={{ padding: "7px 9px", borderRadius: 8, background: bg, border: `1px solid ${t.border}` }}>
+      <div style={{ fontSize: 9, color: t.textSubtle, marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+      <div style={{ fontSize: 13, color, fontWeight: 800 }}>{value}</div>
+    </div>
+  );
+}
+
+function DiffLineCell({ value, t, mono }: { value: string; t: ReturnType<typeof getTheme>; mono: string }) {
+  return (
+    <div style={{ padding: "7px 6px", color: t.textSubtle, fontFamily: mono, fontSize: 10, textAlign: "right", userSelect: "none" }}>
+      {value || "·"}
     </div>
   );
 }
