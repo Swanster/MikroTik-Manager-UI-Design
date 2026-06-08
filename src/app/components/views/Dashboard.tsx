@@ -112,8 +112,8 @@ export function Dashboard({ isDark, mode, activeDeviceId, onDeviceChange }: Dash
       {/* Error banner */}
       {error && <ErrorBanner isDark={isDark} message={error} onRetry={refetch} />}
 
-      {/* Page header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      {/* Page header — sticky */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, position: "sticky", top: 0, zIndex: 10, background: isDark ? "#0D1117" : "#FFFFFF", padding: "0 0 16px 0", borderBottom: `1px solid ${t.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {/* Device Picker */}
           <div style={{ position: "relative" }}>

@@ -340,6 +340,8 @@ export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activ
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", fontFamily: ui, color: t.text }}>
+      {loading && !configData && <LoadingOverlay isDark={isDark} />}
+      {error && <ErrorBanner isDark={isDark} message={error} onRetry={refetch} />}
       {/* Auto-revert banner */}
       {mode === "pro" && (
         <div
@@ -359,7 +361,7 @@ export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activ
         </div>
       )}
 
-      {/* Top toolbar */}
+      {/* Top toolbar — sticky */}
       <div
         style={{
           display: "flex",
@@ -368,6 +370,9 @@ export function Config({ isDark, mode, safety, onQueueChange, onOpenQueue, activ
           padding: "12px 16px",
           background: t.surface,
           borderBottom: `1px solid ${t.border}`,
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
         }}
       >
         {/* View mode tabs */}

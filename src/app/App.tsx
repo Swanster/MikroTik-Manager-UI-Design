@@ -35,6 +35,7 @@ export default function App() {
 function AppContent() {
   const { addToast } = useToast();
   const [activeNav, setActiveNav] = useState<NavItem>("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mode, setMode] = useState<AppMode>("beginner");
   const [theme, setTheme] = useState<AppTheme>("dark");
   const [safetyState, setSafetyState] = useState<SafetyState>({
@@ -102,7 +103,7 @@ function AppContent() {
         overflow: "hidden",
       }}
     >
-      <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} isDark={isDark} activeDeviceId={activeDeviceId} />
+      <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} isDark={isDark} activeDeviceId={activeDeviceId} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100%" }}>
         <TopBar
           activeNav={activeNav}
