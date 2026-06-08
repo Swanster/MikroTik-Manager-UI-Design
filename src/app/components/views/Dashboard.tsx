@@ -5,13 +5,14 @@ import {
 } from "recharts";
 import {
   Cpu, HardDrive, Clock, Thermometer, RefreshCw, ArrowUp, ArrowDown,
-  Wifi, AlertTriangle, XCircle, Activity, Zap, ChevronDown,
+  Wifi, AlertTriangle, XCircle, Activity, Zap, ChevronDown, CheckCircle,
 } from "lucide-react";
 import type { AppMode } from "../../types";
 import { getTheme } from "../theme";
 import { fetchDashboard, DEVICE_PROFILES } from "../../services/mockRouterOSApi";
 import { useFetch } from "../../services/useFetch";
 import { LoadingOverlay, ErrorBanner, LatencyBadge } from "../StatusComponents";
+import { useToast } from "../Toast";
 import type { DashboardData } from "../../services/types";
 
 // Fallback static data (used while loading or on error)
@@ -71,6 +72,8 @@ export function Dashboard({ isDark, mode, activeDeviceId, onDeviceChange }: Dash
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const { addToast } = useToast();
   const activeDevice = DEVICE_PROFILES.find((d) => d.id === activeDeviceId) ?? DEVICE_PROFILES[0];
 
   // Fetch data from mock API with auto-refresh every 10s
@@ -186,29 +189,43 @@ export function Dashboard({ isDark, mode, activeDeviceId, onDeviceChange }: Dash
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
-            onClick={refetch}
-            disabled={loading}
+            onClick={() => {
+              setRefreshing(true);
+              addToast("info", "Refreshing", `Requesting latest dashboard data for ${activeDevice.name}...`);
+              refetch();
+              setTimeout(() => {
+                setRefreshing(false);
+              }, 600);
+            }}
+            disabled={loading || refreshing}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
               padding: "7px 13px",
-              background: t.surface2,
-              border: `1px solid ${t.border}`,
+              background: refreshing ? t.accentBg : t.surface2,
+              border: `1px solid ${refreshing ? t.accent : t.border}`,
               borderRadius: 7,
-              color: t.textMuted,
+              color: refreshing ? t.accent : t.textMuted,
               fontSize: 12,
-              cursor: "pointer",
+              cursor: loading || refreshing ? "not-allowed" : "pointer",
               fontFamily: "inherit",
-              transition: "all 0.12s",
+              transition: "all 0.15s",
+              opacity: loading || refreshing ? 0.7 : 1,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.accent; e.currentTarget.style.color = t.accent; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textMuted; }}
+            onMouseEnter={(e) => { if (!loading && !refreshing) { e.currentTarget.style.borderColor = t.accent; e.currentTarget.style.color = t.accent; } }}
+            onMouseLeave={(e) => { if (!refreshing) { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.textMuted; } }}
           >
-            <RefreshCw size={12} style={{ transform: loading ? "rotate(360deg)" : "none", transition: "transform 0.8s linear" }} />
-            Refresh
+            <RefreshCw size={12} style={{ transform: refreshing ? "rotate(360deg)" : "none", transition: "transform 0.6s linear" }} />
+            {refreshing ? "Refreshing..." : "Refresh"}
           </button>
           <button
+            onClick={() => {
+              addToast("info", "Quick Connect", `Connecting to ${activeDevice.name} (${activeDevice.ip})...`);
+              setTimeout(() => {
+                addToast("success", "Connected", `${activeDevice.name} is reachable — ${activeDevice.status}`);
+              }, 1200);
+            }}
             style={{
               display: "flex",
               alignItems: "center",
