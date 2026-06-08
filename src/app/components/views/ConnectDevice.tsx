@@ -6,54 +6,7 @@ import {
 } from "lucide-react";
 import { getTheme } from "../theme";
 import type { AppMode } from "../../types";
-
-const savedDevices = [
-  {
-    id: 1,
-    name: "Core Router",
-    ip: "192.168.1.1",
-    model: "RB4011iGS+",
-    status: "online" as const,
-    version: "7.14.3",
-    lastSeen: "Just now",
-  },
-  {
-    id: 2,
-    name: "Branch Office",
-    ip: "10.0.0.1",
-    model: "RB750Gr3",
-    status: "online" as const,
-    version: "7.13.5",
-    lastSeen: "2 min ago",
-  },
-  {
-    id: 3,
-    name: "AP Controller",
-    ip: "192.168.2.1",
-    model: "cAP ac",
-    status: "offline" as const,
-    version: "7.12.1",
-    lastSeen: "3h ago",
-  },
-  {
-    id: 4,
-    name: "VPN Gateway",
-    ip: "203.0.113.10",
-    model: "CCR2004-1G",
-    status: "online" as const,
-    version: "7.14.3",
-    lastSeen: "5 min ago",
-  },
-  {
-    id: 5,
-    name: "Lab Switch",
-    ip: "172.16.0.1",
-    model: "CRS317-1G",
-    status: "offline" as const,
-    version: "7.11.0",
-    lastSeen: "2d ago",
-  },
-];
+import { DEVICE_PROFILES } from "../../services/mockRouterOSApi";
 
 type ConnectionMethod = "auto" | "api-tls" | "api" | "ssh" | "rest";
 type DetectionState = "idle" | "detecting" | "detected" | "failed";
@@ -80,7 +33,7 @@ export function ConnectDevice({ isDark }: ConnectDeviceProps) {
   const [detection, setDetection] = useState<DetectionState>("idle");
   const [testing, setTesting] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [selectedSaved, setSelectedSaved] = useState<number | null>(null);
+  const [selectedSaved, setSelectedSaved] = useState<string | null>(null);
 
   const methods: { id: ConnectionMethod; label: string; desc: string }[] = [
     { id: "auto", label: "Auto", desc: "Detect best" },
@@ -106,8 +59,8 @@ export function ConnectDevice({ isDark }: ConnectDeviceProps) {
     setTimeout(() => setConnecting(false), 2500);
   }
 
-  function handleSavedSelect(id: number) {
-    const dev = savedDevices.find((d) => d.id === id);
+  function handleSavedSelect(id: string) {
+    const dev = DEVICE_PROFILES.find((d) => d.id === id);
     if (!dev) return;
     setSelectedSaved(id);
     setDeviceName(dev.name);
@@ -172,13 +125,13 @@ export function ConnectDevice({ isDark }: ConnectDeviceProps) {
         >
           <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>Saved Devices</div>
           <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>
-            {savedDevices.filter((d) => d.status === "online").length} online · {savedDevices.filter((d) => d.status === "offline").length} offline
+            {DEVICE_PROFILES.filter((d) => d.status === "online").length} online · {DEVICE_PROFILES.filter((d) => d.status === "offline").length} offline
           </div>
         </div>
 
         {/* Device list */}
         <div style={{ flex: 1, overflow: "auto", padding: "8px" }}>
-          {savedDevices.map((dev) => {
+          {DEVICE_PROFILES.map((dev) => {
             const isSelected = selectedSaved === dev.id;
             return (
               <button
@@ -265,7 +218,7 @@ export function ConnectDevice({ isDark }: ConnectDeviceProps) {
                     {dev.ip}
                   </div>
                   <div style={{ fontSize: 10, color: t.textSubtle, marginTop: 1 }}>
-                    {dev.model}
+                    {dev.model} · up {dev.uptime}
                   </div>
                 </div>
 

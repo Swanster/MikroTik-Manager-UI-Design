@@ -1,35 +1,42 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Plus, Search, RefreshCw, MoreHorizontal, Cpu, HardDrive,
   ChevronUp, ChevronDown, ExternalLink, Edit3, Trash2, Wifi, LayoutDashboard,
 } from "lucide-react";
-import type { AppMode } from "../../types";
+import type { AppMode, NavItem } from "../../types";
 import { getTheme } from "../theme";
-import { DEVICE_PROFILES } from "../../services/mockRouterOSApi";
+import { DEVICE_PROFILES, removeDevice, updateDevice, reconnectDevice } from "../../services/mockRouterOSApi";
 import { EmptyState } from "../EmptyState";
+import { DeviceModal } from "../DeviceModal";
+import { useToast } from "../Toast";
+import type { DeviceProfile } from "../../services/types";
 
-const devices = DEVICE_PROFILES.map((d) => ({
-  ...d,
-  id: d.id, // keep string id
-  idNum: 0, // placeholder for sort compatibility
-}));
+function getDevicesSnapshot() {
+  return DEVICE_PROFILES.map((d) => ({ ...d, id: d.id, idNum: 0 }));
+}
 
 interface DevicesProps {
   isDark: boolean;
   mode: AppMode;
   activeDeviceId?: string;
   onDeviceSelect?: (id: string) => void;
+  onNavigate?: (nav: NavItem) => void;
 }
 
-export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: DevicesProps) {
+export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect, onNavigate }: DevicesProps) {
   const t = getTheme(isDark);
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";
+  const { addToast } = useToast();
+  const [devices, setDevices] = useState(getDevicesSnapshot);
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<string>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [editDevice, setEditDevice] = useState<DeviceProfile | null>(null);
+  const [removeDeviceTarget, setRemoveDeviceTarget] = useState<DeviceProfile | null>(null);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
 
   const filtered = devices
     .filter(
@@ -52,6 +59,44 @@ export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: Device
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortField(field); setSortDir("asc"); }
   }
+
+  // Refresh device list after modal operations
+  useEffect(() => {
+    if (!editDevice && !removeDeviceTarget) {
+      setDevices(getDevicesSnapshot());
+    }
+  }, [editDevice, removeDeviceTarget]);
+
+  const handleEditSave = useCallback(async (patch: Partial<Pick<DeviceProfile, "name" | "ip" | "model" | "location" | "status" | "version">>) => {
+    if (!editDevice) return;
+    const res = await updateDevice(editDevice.id, patch);
+    if (res.ok) {
+      addToast("success", "Device updated", `${patch.name || editDevice.name} has been updated.`);
+    } else {
+      addToast("error", "Update failed", res.data as unknown as string);
+    }
+  }, [editDevice, addToast]);
+
+  const handleRemoveConfirm = useCallback(async () => {
+    if (!removeDeviceTarget) return;
+    const res = await removeDevice(removeDeviceTarget.id);
+    if (res.ok) {
+      addToast("success", "Device removed", `${removeDeviceTarget.name} has been removed.`);
+    } else {
+      addToast("error", "Remove failed", res.data as unknown as string);
+    }
+  }, [removeDeviceTarget, addToast]);
+
+  const handleReconnect = useCallback(async (deviceId: string, deviceName: string) => {
+    setRefreshing(deviceId);
+    const res = await reconnectDevice(deviceId);
+    setRefreshing(null);
+    if (res.ok) {
+      addToast("success", "Reconnected", `${deviceName} is now online.`);
+    } else {
+      addToast("error", "Reconnect failed", `Could not reach ${deviceName}.`);
+    }
+  }, [addToast]);
 
   const onlineCount = devices.filter((d) => d.status === "online").length;
   const warningCount = devices.filter((d) => d.status === "warning").length;
@@ -80,6 +125,7 @@ export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: Device
             <RefreshCw size={12} /> Refresh
           </button>
           <button
+            onClick={() => onNavigate?.("connect")}
             style={{
               display: "flex", alignItems: "center", gap: 6, padding: "7px 13px",
               background: t.accent, border: "none", borderRadius: 7,
@@ -146,16 +192,10 @@ export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: Device
                   key={col.label || "actions"}
                   onClick={() => col.field && toggleSort(col.field)}
                   style={{
-                    padding: "10px 14px",
-                    textAlign: "left",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: t.textMuted,
-                    background: t.surface2,
-                    cursor: col.field ? "pointer" : "default",
-                    userSelect: "none",
-                    width: col.w,
-                    letterSpacing: "0.04em",
+                    padding: "10px 14px", textAlign: "left", fontSize: 11,
+                    fontWeight: 600, color: t.textMuted, background: t.surface2,
+                    cursor: col.field ? "pointer" : "default", userSelect: "none",
+                    width: col.w, letterSpacing: "0.04em",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -220,8 +260,7 @@ export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: Device
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 5,
                         padding: "3px 8px", borderRadius: 99,
-                        background: statusBg,
-                        border: `1px solid ${statusColor}33`,
+                        background: statusBg, border: `1px solid ${statusColor}33`,
                       }}
                     >
                       <div style={{ width: 5, height: 5, borderRadius: "50%", background: statusColor, boxShadow: device.status === "online" ? `0 0 5px ${statusColor}` : "none" }} />
@@ -265,6 +304,10 @@ export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: Device
                           t={t}
                           device={device}
                           onDeviceSelect={onDeviceSelect}
+                          onEdit={() => { setEditDevice(device as unknown as DeviceProfile); setMenuOpen(null); }}
+                          onRemove={() => { setRemoveDeviceTarget(device as unknown as DeviceProfile); setMenuOpen(null); }}
+                          onReconnect={() => { handleReconnect(device.id, device.name); setMenuOpen(null); }}
+                          isRefreshing={refreshing === device.id}
                         />
                       )}
                     </div>
@@ -283,6 +326,26 @@ export function Devices({ isDark, mode, activeDeviceId, onDeviceSelect }: Device
           />
         )}
       </div>
+
+      {/* Modals */}
+      {editDevice && (
+        <DeviceModal
+          isDark={isDark}
+          mode="edit"
+          device={editDevice}
+          onSave={handleEditSave}
+          onClose={() => setEditDevice(null)}
+        />
+      )}
+      {removeDeviceTarget && (
+        <DeviceModal
+          isDark={isDark}
+          mode="remove"
+          device={removeDeviceTarget}
+          onRemove={handleRemoveConfirm}
+          onClose={() => setRemoveDeviceTarget(null)}
+        />
+      )}
     </div>
   );
 }
@@ -311,13 +374,17 @@ function MiniBar({ value, color, t }: { value: number; color: string; t: ReturnT
 }
 
 function ContextMenu({
-  isDark, onClose, t, device, onDeviceSelect,
+  isDark, onClose, t, device, onDeviceSelect, onEdit, onRemove, onReconnect, isRefreshing,
 }: {
   isDark: boolean;
   onClose: () => void;
   t: ReturnType<typeof getTheme>;
   device: (typeof devices)[0];
   onDeviceSelect?: (id: string) => void;
+  onEdit: () => void;
+  onRemove: () => void;
+  onReconnect: () => void;
+  isRefreshing: boolean;
 }) {
   return (
     <>
@@ -333,20 +400,22 @@ function ContextMenu({
         {[
           { icon: <LayoutDashboard size={11} />, label: "View Dashboard", action: () => onDeviceSelect?.(device.id) },
           { icon: <ExternalLink size={11} />, label: "Open Terminal" },
-          { icon: <Edit3 size={11} />, label: "Edit Device" },
-          { icon: <RefreshCw size={11} />, label: "Reconnect" },
-          { icon: <Trash2 size={11} />, label: "Remove", danger: true },
+          { icon: <Edit3 size={11} />, label: "Edit Device", action: onEdit },
+          { icon: <RefreshCw size={11} className={isRefreshing ? "animate-spin" : ""} />, label: isRefreshing ? "Connecting..." : "Reconnect", action: onReconnect, disabled: isRefreshing },
+          { icon: <Trash2 size={11} />, label: "Remove", danger: true, action: onRemove },
         ].map((item) => (
           <button
             key={item.label}
-            onClick={() => { item.action?.(); onClose(); }}
+            onClick={() => { if (!(item as { disabled?: boolean }).disabled) { item.action?.(); onClose(); } }}
             style={{
               width: "100%", display: "flex", alignItems: "center", gap: 8,
               padding: "7px 10px", borderRadius: 5, border: "none",
               background: "transparent", color: (item as { danger?: boolean }).danger ? t.red : t.text,
-              fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+              fontSize: 12, cursor: (item as { disabled?: boolean }).disabled ? "default" : "pointer",
+              fontFamily: "inherit", textAlign: "left",
+              opacity: (item as { disabled?: boolean }).disabled ? 0.5 : 1,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = (item as { danger?: boolean }).danger ? t.redBg : t.surface2; }}
+            onMouseEnter={(e) => { if (!(item as { disabled?: boolean }).disabled) e.currentTarget.style.background = (item as { danger?: boolean }).danger ? t.redBg : t.surface2; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             {item.icon}

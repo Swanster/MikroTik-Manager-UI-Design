@@ -145,6 +145,7 @@ function AppContent() {
                 mode={mode}
                 activeDeviceId={activeDeviceId}
                 onDeviceSelect={(id) => { setActiveDeviceId(id); setActiveNav("dashboard"); }}
+                onNavigate={(nav) => setActiveNav(nav)}
               />
             </div>
           )}

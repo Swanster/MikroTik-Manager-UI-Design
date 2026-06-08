@@ -883,6 +883,45 @@ export interface CommandResult {
   executionTime: number;
 }
 
+// ============================================================
+// Device Management (Batch 11)
+// ============================================================
+
+export async function removeDevice(deviceId: string): Promise<ApiResponse<boolean>> {
+  const latency = randomLatency();
+  await delay(latency);
+  if (shouldSimulateError()) return wrapError("Failed to remove device", latency);
+  const idx = DEVICE_PROFILES.findIndex((d) => d.id === deviceId);
+  if (idx === -1) return wrapError("Device not found", latency);
+  DEVICE_PROFILES.splice(idx, 1);
+  return wrapResponse(true);
+}
+
+export async function updateDevice(
+  deviceId: string,
+  patch: Partial<Pick<DeviceProfile, "name" | "ip" | "model" | "location" | "status" | "version">>
+): Promise<ApiResponse<DeviceProfile>> {
+  const latency = randomLatency();
+  await delay(latency);
+  if (shouldSimulateError()) return wrapError("Failed to update device", latency);
+  const device = DEVICE_PROFILES.find((d) => d.id === deviceId);
+  if (!device) return wrapError("Device not found", latency);
+  Object.assign(device, patch);
+  return wrapResponse({ ...device });
+}
+
+export async function reconnectDevice(deviceId: string): Promise<ApiResponse<DeviceProfile>> {
+  const latency = randomLatency();
+  await delay(latency);
+  if (shouldSimulateError()) return wrapError("Reconnect failed", latency);
+  const device = DEVICE_PROFILES.find((d) => d.id === deviceId);
+  if (!device) return wrapError("Device not found", latency);
+  // Simulate reconnect: bump status to online temporarily
+  const prev = device.status;
+  device.status = "online";
+  return wrapResponse({ ...device, _prevStatus: prev } as DeviceProfile & { _prevStatus: string });
+}
+
 export async function executeCommand(command: string): Promise<ApiResponse<CommandResult>> {
   const latency = randomLatency();
   await delay(latency);
