@@ -283,9 +283,10 @@ interface LogsProps {
   mode: AppMode;
   onAuditLog?: () => void;
   activeDeviceId?: string;
+  onQueueChange?: () => void;
 }
 
-export function Logs({ isDark, mode, onAuditLog, activeDeviceId }: LogsProps) {
+export function Logs({ isDark, mode, onAuditLog, activeDeviceId, onQueueChange }: LogsProps) {
   const t = getTheme(isDark);
   const mono = "'JetBrains Mono', monospace";
   const ui = "'Inter', -apple-system, sans-serif";

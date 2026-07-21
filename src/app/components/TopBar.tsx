@@ -5,6 +5,7 @@ import { getTheme } from "./theme";
 
 const sectionTitles: Record<NavItem, string> = {
   dashboard: "Dashboard",
+  fleet: "Fleet Dashboard",
   devices: "Devices",
   connect: "Add Device",
   "wifi-settings": "Wi-Fi Settings",

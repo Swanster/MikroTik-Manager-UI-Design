@@ -379,7 +379,7 @@ function ContextMenu({
   isDark: boolean;
   onClose: () => void;
   t: ReturnType<typeof getTheme>;
-  device: (typeof devices)[0];
+  device: DeviceProfile;
   onDeviceSelect?: (id: string) => void;
   onEdit: () => void;
   onRemove: () => void;
