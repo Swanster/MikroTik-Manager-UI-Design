@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { BrowserRouter, useNavigate, useLocation } from "react-router-dom";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { SafetyBar } from "./components/SafetyBar";
@@ -26,15 +27,26 @@ import type { QueuedCommand } from "./services/types";
 
 export default function App() {
   return (
-    <ToastProvider isDark={true}>
-      <AppContent />
-    </ToastProvider>
+    <BrowserRouter>
+      <ToastProvider isDark={true}>
+        <AppContent />
+      </ToastProvider>
+    </BrowserRouter>
   );
 }
 
 function AppContent() {
   const { addToast } = useToast();
-  const [activeNav, setActiveNav] = useState<NavItem>("dashboard");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Derive activeNav from URL pathname (single source of truth)
+  const activeNav: NavItem = (location.pathname === "/" ? "dashboard" : location.pathname.slice(1)) as NavItem;
+
+  const setActiveNav = useCallback((nav: NavItem) => {
+    navigate(nav === "dashboard" ? "/" : `/${nav}`, { replace: true });
+  }, [navigate]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mode, setMode] = useState<AppMode>("beginner");
   const [theme, setTheme] = useState<AppTheme>("dark");
@@ -55,7 +67,6 @@ function AppContent() {
   const [activeDeviceId, setActiveDeviceId] = useState<string>("rb5009-core");
 
   const isDark = theme === "dark";
-  const bg = isDark ? "#0E0F12" : "#F4F5F7";
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -93,18 +104,9 @@ function AppContent() {
   }, [triggerRefresh, addToast]);
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        background: bg,
-        fontFamily: "'Inter', -apple-system, sans-serif",
-        overflow: "hidden",
-      }}
-    >
+    <div className="flex w-full h-full overflow-hidden">
       <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} isDark={isDark} activeDeviceId={activeDeviceId} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100%" }}>
+      <div className="flex flex-col flex-1 min-w-0 h-full">
         <TopBar
           activeNav={activeNav}
           mode={mode}
@@ -117,10 +119,10 @@ function AppContent() {
         />
         <SafetyBar isDark={isDark} safety={safetyState} />
         <OperationalBanner isDark={isDark} safety={safetyState} />
-        <main style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <main className="flex-1 overflow-hidden relative">
           <ErrorBoundary isDark={isDark} resetKey={activeNav}>
           {activeNav === "dashboard" && (
-            <div style={{ height: "100%", overflow: "auto" }}>
+            <div className="h-full overflow-auto">
               <Dashboard
                 isDark={isDark}
                 mode={mode}
@@ -130,7 +132,7 @@ function AppContent() {
             </div>
           )}
           {activeNav === "fleet" && (
-            <div style={{ height: "100%", overflow: "auto" }}>
+            <div className="h-full overflow-auto">
               <FleetDashboard
                 isDark={isDark}
                 mode={mode}
@@ -140,7 +142,7 @@ function AppContent() {
             </div>
           )}
           {activeNav === "devices" && (
-            <div style={{ height: "100%", overflow: "auto" }}>
+            <div className="h-full overflow-auto">
               <Devices
                 isDark={isDark}
                 mode={mode}
@@ -151,17 +153,17 @@ function AppContent() {
             </div>
           )}
           {activeNav === "connect" && (
-            <div style={{ height: "100%", overflow: "hidden" }}>
+            <div className="h-full overflow-hidden">
               <ConnectDevice isDark={isDark} mode={mode} />
             </div>
           )}
           {activeNav === "wifi-settings" && (
-            <div style={{ height: "100%", overflow: "hidden" }}>
+            <div className="h-full overflow-hidden">
               <WiFiSettings isDark={isDark} mode={mode} />
             </div>
           )}
           {activeNav === "config" && (
-            <div style={{ height: "100%", display: "flex" }}>
+            <div className="flex h-full">
               <Config
                 isDark={isDark}
                 mode={mode}
@@ -173,7 +175,7 @@ function AppContent() {
             </div>
           )}
           {activeNav === "logs" && (
-            <div style={{ height: "100%", overflow: "hidden" }}>
+            <div className="h-full overflow-hidden">
               <Logs
                 isDark={isDark}
                 mode={mode}
@@ -183,7 +185,7 @@ function AppContent() {
             </div>
           )}
           {activeNav === "troubleshoot" && (
-            <div style={{ height: "100%", overflow: "auto" }}>
+            <div className="h-full overflow-auto">
               <Troubleshoot
                 isDark={isDark}
                 mode={mode}
@@ -195,7 +197,7 @@ function AppContent() {
             </div>
           )}
           {activeNav === "settings" && (
-            <div style={{ height: "100%", overflow: "auto" }}>
+            <div className="h-full overflow-auto">
               <SettingsView isDark={isDark} mode={mode} />
             </div>
           )}

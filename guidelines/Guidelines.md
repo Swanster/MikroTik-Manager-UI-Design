@@ -1,61 +1,137 @@
-**Add your own guidelines here**
-<!--
+# Project Guidelines — MikroTik Manager UI Design
 
-System Guidelines
+## General Principles
 
-Use this file to provide the AI with rules and guidelines you want it to follow.
-This template outlines a few examples of things you can add. You can add your own sections and format it to suit your needs
+- **Optimize for correctness first**, then maintainability. Performance is a constraint, not a goal.
+- **Every file has a single responsibility.** Views render UI. Services provide data. Hooks encapsulate logic.
+- **Delete code that isn't pulling its weight.** Dead imports, unused components, redundant abstractions — remove them.
+- **Prefer boring over clever.** Simple switch statements over dynamic dispatch. Explicit props over context hacks.
 
-TIP: More context isn't always better. It can confuse the LLM. Try and add the most important rules you need
+---
 
-# General guidelines
+## Architecture
 
-Any general rules you want the AI to follow.
-For example:
+### Component Tree
+```
+App
+├── ToastProvider
+├── ErrorBoundary
+├── TopBar
+├── OperationalBanner
+├── Sidebar
+└── View (activeNav switch)
+    ├── Dashboard
+    ├── FleetDashboard
+    ├── Devices
+    ├── ConnectDevice
+    ├── WiFiSettings
+    ├── Config
+    ├── Logs
+    ├── Troubleshoot
+    └── SettingsView
+```
 
-* Only use absolute positioning when necessary. Opt for responsive and well structured layouts that use flexbox and grid by default
-* Refactor code as you go to keep code clean
-* Keep file sizes small and put helper functions and components in their own files.
+### Data Flow
+```
+User Action → Component handler → Service function → ApiResponse<T>
+                                   ↕                        ↕
+                              useFetch hook          MockRouterOSApi
+                                   ↕
+                            Command Queue (approval gate) → Audit Log
+```
 
---------------
+### State Management
+- **Use `useState` at App level** for shared state (activeNav, activeDeviceId, theme, safetyState).
+- **Pass down via props.** No global state library.
+- **Keep view state local.** Search filters, form inputs, expanded panels belong in the view itself.
+- **Context only for cross-cutting concerns.** Currently only ToastProvider.
 
-# Design system guidelines
-Rules for how the AI should make generations look like your company's design system
+---
 
-Additionally, if you select a design system to use in the prompt box, you can reference
-your design system's components, tokens, variables and components.
-For example:
+## Code Conventions
 
-* Use a base font-size of 14px
-* Date formats should always be in the format “Jun 10”
-* The bottom toolbar should only ever have a maximum of 4 items
-* Never use the floating action button with the bottom toolbar
-* Chips should always come in sets of 3 or more
-* Don't use a dropdown if there are 2 or fewer options
+### TypeScript
+- **Strict mode is enabled.** Use `strict: true` in tsconfig.
+- **Prefer `interface` over `type`** for object shapes. Use `type` for unions and aliases.
+- **Export types at module level.** Avoid `ReturnType<typeof fn>` at consumers — export the interface.
+- **Use branded types sparingly.** Plain string/number types are fine for this app's scope.
 
-You can also create sub sections and add more specific details
-For example:
+### Components
+- **File name:** PascalCase matching the export name: `Dashboard.tsx` exports `Dashboard`.
+- **One component per file**, unless tightly coupled helpers (< 30 lines).
+- **Props interface:** named `{ComponentName}Props`, co-located above the component.
+- **Default export** for the main App component. Named exports for everything else.
+- **Pattern for data-fetching views:**
+  ```tsx
+  export function View({ isDark, ...props }: ViewProps) {
+    const t = getTheme(isDark);
+    const { data, loading, error, retry } = useFetch(fetcher);
 
+    if (loading) return <LoadingOverlay isDark={isDark} />;
+    if (error) return <ErrorBanner isDark={isDark} message={error} onRetry={retry} />;
+    if (!data) return <EmptyState isDark={isDark} title="..." />;
 
-## Button
-The Button component is a fundamental interactive element in our design system, designed to trigger actions or navigate
-users through the application. It provides visual feedback and clear affordances to enhance user experience.
+    return <div>...</div>;
+  }
+  ```
 
-### Usage
-Buttons should be used for important actions that users need to take, such as form submissions, confirming choices,
-or initiating processes. They communicate interactivity and should have clear, action-oriented labels.
+### Styling
+- **Use Tailwind utility classes** for new components. Keep `theme.css` for design tokens.
+- **Avoid inline `style={{}}`** in new code — extract to Tailwind classes.
+- **Dark mode:** use Tailwind `dark:` variant. Theme tokens are in `theme.css` under `.dark` selector.
+- **Color palette:** defined as CSS custom properties in `theme.css`. Reference via `var(--color-*)` or Tailwind classes.
 
-### Variants
-* Primary Button
-  * Purpose : Used for the main action in a section or page
-  * Visual Style : Bold, filled with the primary brand color
-  * Usage : One primary button per section to guide users toward the most important action
-* Secondary Button
-  * Purpose : Used for alternative or supporting actions
-  * Visual Style : Outlined with the primary color, transparent background
-  * Usage : Can appear alongside a primary button for less important actions
-* Tertiary Button
-  * Purpose : Used for the least important actions
-  * Visual Style : Text-only with no border, using primary color
-  * Usage : For actions that should be available but not emphasized
--->
+### Services / API
+- **Every service function returns `Promise<ApiResponse<T>>`** for consistency.
+- **Mock API** lives in `services/mockRouterOSApi.ts`. Real API goes in `services/routerOSApi.ts`.
+- **Keep mock and real API interfaces identical** — swap via import or conditional.
+- **Error handling:** `useFetch` handles try/catch. Services throw on network failure, return `ok: false` for API errors.
+
+### Testing
+- **Test files co-located or in `src/test/`** — choose one convention and stick to it.
+- **Test behavior, not implementation.** Don't assert on internal state; assert on rendered output.
+- **Smoke test every view:** renders without crashing, shows loading/error/data states.
+- **Use `screen.getByText`/`getByRole`** over `container.querySelector`.
+- **Mock theme** in component tests (see `components.test.tsx` for pattern).
+
+---
+
+## File Naming
+
+| Pattern | Example |
+|---------|---------|
+| `*.tsx` — React components | `Dashboard.tsx`, `DeviceModal.tsx` |
+| `*.ts` — services, hooks, types | `mockRouterOSApi.ts`, `useFetch.ts` |
+| `*.test.ts` / `*.test.tsx` — tests | `services.test.ts`, `components.test.tsx` |
+| PascalCase for components | `BackupSnapshotList.tsx` |
+| camelCase for services/hooks | `commandQueueService.ts`, `useKeyboardShortcuts.ts` |
+
+---
+
+## Git Conventions
+
+- **Commit format:** `type(scope): message` — `feat`, `fix`, `chore`, `refactor`, `docs`, `test`.
+- **One logical change per commit.** Squash WIP commits before pushing.
+- **Batch labels** (e.g. `Batch N`) for feature groupings in commit messages.
+- **Tags** for releases: `vMAJOR.MINOR.PATCH` — tag at merge to main.
+
+---
+
+## Performance
+
+- **No premature optimization.** Render performance is fine for < 50 devices.
+- **Avoid unnecessary re-renders:** use `useCallback` for handlers passed to child components, `useMemo` for derived data.
+- **Bundle awareness:** lucide-react supports tree-shaking by default. Recharts is the heaviest dep at ~323 KB.
+- **Manual chunks:** Vite config separates vendor (node_modules) and vendor-charts (recharts/d3).
+
+---
+
+## Technical Debt Register
+
+| Item | Priority | Assigned |
+|------|----------|----------|
+| Inline styles → Tailwind classes | Low | — |
+| State-based nav → react-router | Low | — |
+| Real RouterOS API layer | Low | — |
+| Accessibility audit | Low | — |
+| Performance audit | Low | — |
