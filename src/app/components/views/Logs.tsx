@@ -11,12 +11,7 @@ import { logAuditEntry } from "../../services/auditLogService";
 import { fetchLogs, generateLiveLog } from "../../services/mockRouterOSApi";
 import { useFetch } from "../../services/useFetch";
 import { LoadingOverlay, ErrorBanner, LatencyBadge } from "../StatusComponents";
-import type { LogEntry as ServiceLogEntry, LogIntelligence as ServiceLogIntelligence, FixDraft as ServiceFixDraft } from "../../services/types";
-
-type LogLevel = "info" | "warning" | "error" | "debug";
-type LogEntry = ServiceLogEntry;
-type LogIntelligence = ServiceLogIntelligence;
-type FixDraft = ServiceFixDraft;
+import type { LogEntry, LogIntelligence, FixDraft, LogLevel } from "../../services/types";
 
 const FALLBACK_LOGS: LogEntry[] = [
   {
