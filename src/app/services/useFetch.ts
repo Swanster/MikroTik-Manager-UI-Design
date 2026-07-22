@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { ApiResponse } from "./types";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { ApiResponse } from './types';
 
 interface UseFetchState<T> {
   data: T | null;
@@ -25,16 +25,8 @@ interface UseFetchOptions {
  * Custom hook for data fetching with loading, error, retry, and auto-refresh.
  * Works with the mockRouterOSApi ApiResponse<T> pattern.
  */
-export function useFetch<T>(
-  fetcher: () => Promise<ApiResponse<T>>,
-  options: UseFetchOptions = {},
-) {
-  const {
-    refreshInterval = 0,
-    maxRetries = 2,
-    retryDelay = 1000,
-    skip = false,
-  } = options;
+export function useFetch<T>(fetcher: () => Promise<ApiResponse<T>>, options: UseFetchOptions = {}) {
+  const { refreshInterval = 0, maxRetries = 2, retryDelay = 1000, skip = false } = options;
 
   const [state, setState] = useState<UseFetchState<T>>({
     data: null,
@@ -49,23 +41,54 @@ export function useFetch<T>(
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const doFetch = useCallback(async (retryCount = 0) => {
-    if (!mountedRef.current) return;
-
-    setState((prev) => ({
-      ...prev,
-      loading: true,
-      error: null,
-      retryCount,
-    }));
-
-    try {
-      const response = await fetcher();
-
+  const doFetch = useCallback(
+    async (retryCount = 0) => {
       if (!mountedRef.current) return;
 
-      if (!response.ok) {
-        // Retry logic
+      setState((prev) => ({
+        ...prev,
+        loading: true,
+        error: null,
+        retryCount,
+      }));
+
+      try {
+        const response = await fetcher();
+
+        if (!mountedRef.current) return;
+
+        if (!response.ok) {
+          // Retry logic
+          if (retryCount < maxRetries) {
+            const delayMs = retryDelay * Math.pow(2, retryCount);
+            retryTimerRef.current = setTimeout(() => {
+              doFetch(retryCount + 1);
+            }, delayMs);
+            return;
+          }
+
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            error: 'Connection failed after retries. Check device connectivity.',
+            latency: response.latency,
+            timestamp: response.timestamp,
+            retryCount,
+          }));
+          return;
+        }
+
+        setState({
+          data: response.data,
+          loading: false,
+          error: null,
+          latency: response.latency,
+          timestamp: response.timestamp,
+          retryCount,
+        });
+      } catch (err) {
+        if (!mountedRef.current) return;
+
         if (retryCount < maxRetries) {
           const delayMs = retryDelay * Math.pow(2, retryCount);
           retryTimerRef.current = setTimeout(() => {
@@ -77,41 +100,13 @@ export function useFetch<T>(
         setState((prev) => ({
           ...prev,
           loading: false,
-          error: "Connection failed after retries. Check device connectivity.",
-          latency: response.latency,
-          timestamp: response.timestamp,
+          error: err instanceof Error ? err.message : 'Unknown error',
           retryCount,
         }));
-        return;
       }
-
-      setState({
-        data: response.data,
-        loading: false,
-        error: null,
-        latency: response.latency,
-        timestamp: response.timestamp,
-        retryCount,
-      });
-    } catch (err) {
-      if (!mountedRef.current) return;
-
-      if (retryCount < maxRetries) {
-        const delayMs = retryDelay * Math.pow(2, retryCount);
-        retryTimerRef.current = setTimeout(() => {
-          doFetch(retryCount + 1);
-        }, delayMs);
-        return;
-      }
-
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: err instanceof Error ? err.message : "Unknown error",
-        retryCount,
-      }));
-    }
-  }, [fetcher, maxRetries, retryDelay]);
+    },
+    [fetcher, maxRetries, retryDelay],
+  );
 
   const refetch = useCallback(() => {
     doFetch(0);

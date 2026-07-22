@@ -7,11 +7,7 @@ import {
   rejectCommand,
   clearQueue,
 } from '../app/services/commandQueueService';
-import {
-  logAuditEntry,
-  getAuditLog,
-  clearAuditLog,
-} from '../app/services/auditLogService';
+import { logAuditEntry, getAuditLog, clearAuditLog } from '../app/services/auditLogService';
 
 // ─── Command Queue Service ───────────────────────────────────
 
@@ -96,10 +92,7 @@ describe('auditLogService', () => {
   });
 
   it('supports all audit action types', () => {
-    const actions = [
-      'connect', 'config_change', 'command_approve',
-      'diagnostic_run', 'report_download',
-    ] as const;
+    const actions = ['connect', 'config_change', 'command_approve', 'diagnostic_run', 'report_download'] as const;
     for (const action of actions) {
       const entry = logAuditEntry(action, 'target', 'success', 'test');
       expect(entry.action).toBe(action);

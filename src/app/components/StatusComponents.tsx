@@ -1,5 +1,5 @@
-import { RefreshCw, AlertTriangle, WifiOff, Loader2 } from "lucide-react";
-import { getTheme } from "./theme";
+import { RefreshCw, AlertTriangle, WifiOff, Loader2 } from 'lucide-react';
+import { getTheme } from './theme';
 
 // ============================================================
 // Loading Skeleton
@@ -14,7 +14,7 @@ interface LoadingSkeletonProps {
 export function LoadingSkeleton({ isDark, lines = 4, height = 16 }: LoadingSkeletonProps) {
   const t = getTheme(isDark);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {Array.from({ length: lines }).map((_, i) => (
         <div
           key={i}
@@ -23,8 +23,8 @@ export function LoadingSkeleton({ isDark, lines = 4, height = 16 }: LoadingSkele
             height,
             borderRadius: 6,
             background: `linear-gradient(90deg, ${t.surface2} 25%, ${t.border} 50%, ${t.surface2} 75%)`,
-            backgroundSize: "200% 100%",
-            animation: "shimmer 1.5s infinite",
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s infinite',
           }}
         />
       ))}
@@ -49,19 +49,25 @@ interface LoadingOverlayProps {
   retryCount?: number;
 }
 
-export function LoadingOverlay({ isDark, message = "Loading...", isRetrying, retryCount }: LoadingOverlayProps) {
+export function LoadingOverlay({ isDark, message = 'Loading...', isRetrying, retryCount }: LoadingOverlayProps) {
   const t = getTheme(isDark);
   return (
     <div
       style={{
-        position: "absolute", inset: 0, zIndex: 50,
-        background: isDark ? "rgba(14,15,18,0.85)" : "rgba(244,245,247,0.85)",
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        gap: 12, backdropFilter: "blur(4px)",
+        position: 'absolute',
+        inset: 0,
+        zIndex: 50,
+        background: isDark ? 'rgba(14,15,18,0.85)' : 'rgba(244,245,247,0.85)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        backdropFilter: 'blur(4px)',
       }}
     >
-      <Loader2 size={28} color={t.accent} style={{ animation: "spin 1s linear infinite" }} />
-      <span style={{ fontSize: 13, color: t.textMuted, fontFamily: "'Inter', sans-serif" }}>
+      <Loader2 size={28} color={t.accent} style={{ animation: 'spin 1s linear infinite' }} />
+      <span style={{ fontSize: 13, fontFamily: "'Inter', sans-serif" }} className="text-t-text-muted">
         {isRetrying ? `Retrying (attempt ${retryCount})...` : message}
       </span>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
@@ -82,31 +88,42 @@ interface ErrorBannerProps {
 
 export function ErrorBanner({ isDark, message, onRetry, onDismiss }: ErrorBannerProps) {
   const t = getTheme(isDark);
-  const isTimeout = message.toLowerCase().includes("timeout");
+  const isTimeout = message.toLowerCase().includes('timeout');
 
   return (
     <div
       style={{
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "10px 14px", marginBottom: 14,
-        background: t.redBg, border: `1px solid ${t.red}33`,
-        borderRadius: 8, fontFamily: "'Inter', sans-serif",
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '10px 14px',
+        marginBottom: 14,
+
+        borderRadius: 8,
+        fontFamily: "'Inter', sans-serif",
       }}
+      className="bg-t-red-bg border border-t-red"
     >
       {isTimeout ? <WifiOff size={15} color={t.red} /> : <AlertTriangle size={15} color={t.red} />}
-      <span style={{ flex: 1, fontSize: 12, color: t.redText, lineHeight: 1.4 }}>
+      <span style={{ flex: 1, fontSize: 12, lineHeight: 1.4 }} className="text-t-red-text">
         {message}
       </span>
       {onRetry && (
         <button
           onClick={onRetry}
           style={{
-            display: "flex", alignItems: "center", gap: 5,
-            padding: "5px 10px", background: "transparent",
-            border: `1px solid ${t.red}44`, borderRadius: 6,
-            color: t.redText, fontSize: 11, fontWeight: 600,
-            cursor: "pointer", fontFamily: "inherit",
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '5px 10px',
+            background: 'transparent',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
           }}
+          className="border border-t-red text-t-red-text"
         >
           <RefreshCw size={11} /> Retry
         </button>
@@ -115,9 +132,13 @@ export function ErrorBanner({ isDark, message, onRetry, onDismiss }: ErrorBanner
         <button
           onClick={onDismiss}
           style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: t.redText, fontSize: 16, padding: 2,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 16,
+            padding: 2,
           }}
+          className="text-t-red-text"
         >
           ×
         </button>
@@ -141,19 +162,24 @@ export function LatencyBadge({ isDark, latency, timestamp }: LatencyBadgeProps) 
   if (latency === null) return null;
 
   const color = latency < 200 ? t.green : latency < 500 ? t.amber : t.red;
-  const label = latency < 200 ? "Fast" : latency < 500 ? "Slow" : "Very Slow";
+  const label = latency < 200 ? 'Fast' : latency < 500 ? 'Slow' : 'Very Slow';
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <div style={{
-        width: 6, height: 6, borderRadius: "50%",
-        background: color, boxShadow: `0 0 4px ${color}`,
-      }} />
-      <span style={{ fontSize: 10, color: t.textSubtle, fontFamily: "'JetBrains Mono', monospace" }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          background: color,
+          boxShadow: `0 0 4px ${color}`,
+        }}
+      />
+      <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }} className="text-t-text-subtle">
         {latency}ms · {label}
       </span>
       {timestamp && (
-        <span style={{ fontSize: 10, color: t.textSubtle }}>
+        <span style={{ fontSize: 10 }} className="text-t-text-subtle">
           · {new Date(timestamp).toLocaleTimeString()}
         </span>
       )}

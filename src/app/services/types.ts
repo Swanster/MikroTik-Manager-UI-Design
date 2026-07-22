@@ -6,7 +6,7 @@ export interface DeviceProfile {
   model: string;
   ip: string;
   location: string;
-  status: "online" | "warning" | "offline";
+  status: 'online' | 'warning' | 'offline';
   version: string;
   serial: string;
   cpu: number;
@@ -29,7 +29,7 @@ export interface SystemHealth {
 export interface InterfaceInfo {
   name: string;
   role: string;
-  status: "up" | "down";
+  status: 'up' | 'down';
   ip: string;
   tx: string;
   rx: string;
@@ -59,7 +59,7 @@ export interface DashboardData {
 
 // === Log Types ===
 
-export type LogLevel = "info" | "warning" | "error" | "debug";
+export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
 
 export interface LogEntry {
   id: number;
@@ -77,12 +77,12 @@ export interface LogIntelligence {
   impact: string;
   evidence: string[];
   nextAction: string;
-  fixType: "read-only" | "config-draft" | "monitor";
+  fixType: 'read-only' | 'config-draft' | 'monitor';
 }
 
 export interface FixDraft {
   title: string;
-  risk: "Low" | "Medium" | "High";
+  risk: 'Low' | 'Medium' | 'High';
   safetyGate: string;
   commands: string[];
   verification: string[];
@@ -106,20 +106,20 @@ export interface ConfigSection {
 
 // === Troubleshoot Types ===
 
-export type DiagnosticType = "internet" | "wifi" | "slow" | "device";
+export type DiagnosticType = 'internet' | 'wifi' | 'slow' | 'device';
 
 export interface DiagnosticStep {
   label: string;
-  status: "pending" | "running" | "pass" | "fail";
+  status: 'pending' | 'running' | 'pass' | 'fail';
   detail?: string;
   command?: string;
-  outcome?: "pass" | "fail";
+  outcome?: 'pass' | 'fail';
 }
 
 export interface DiagnosticResult {
   cause: string;
   fix: string;
-  risk: "Low" | "Medium" | "High";
+  risk: 'Low' | 'Medium' | 'High';
   confidence: string;
   evidence: string[];
   safeFixDraft: string[];
@@ -135,13 +135,13 @@ export interface DiagnosticScenario {
 
 // === Command Queue Types ===
 
-export type CommandStatus = "pending" | "approved" | "rejected" | "applied";
+export type CommandStatus = 'pending' | 'approved' | 'rejected' | 'applied';
 
 export interface QueuedCommand {
   id: string;
   command: string;
   source: string;
-  risk: "Low" | "Medium" | "High";
+  risk: 'Low' | 'Medium' | 'High';
   status: CommandStatus;
   createdAt: string;
   approvedAt?: string;
@@ -152,24 +152,24 @@ export interface QueuedCommand {
 // === Audit Log Types ===
 
 export type AuditAction =
-  | "connect"
-  | "disconnect"
-  | "config_view"
-  | "config_change"
-  | "config_validate"
-  | "config_backup"
-  | "config_rollback"
-  | "command_draft"
-  | "command_approve"
-  | "command_reject"
-  | "command_apply"
-  | "diagnostic_run"
-  | "log_view"
-  | "log_export"
-  | "report_generate"
-  | "report_download";
+  | 'connect'
+  | 'disconnect'
+  | 'config_view'
+  | 'config_change'
+  | 'config_validate'
+  | 'config_backup'
+  | 'config_rollback'
+  | 'command_draft'
+  | 'command_approve'
+  | 'command_reject'
+  | 'command_apply'
+  | 'diagnostic_run'
+  | 'log_view'
+  | 'log_export'
+  | 'report_generate'
+  | 'report_download';
 
-export type AuditResult = "success" | "failure" | "pending" | "cancelled";
+export type AuditResult = 'success' | 'failure' | 'pending' | 'cancelled';
 
 export interface AuditEntry {
   id: string;
@@ -178,7 +178,7 @@ export interface AuditEntry {
   target: string;
   result: AuditResult;
   detail: string;
-  risk: "Low" | "Medium" | "High";
+  risk: 'Low' | 'Medium' | 'High';
 }
 
 // === Backup Snapshot Types ===
@@ -197,7 +197,7 @@ export interface BackupSnapshot {
 // === Config Diff Types ===
 
 export interface ConfigDiffLine {
-  type: "added" | "removed" | "context" | "unchanged";
+  type: 'added' | 'removed' | 'context' | 'unchanged';
   line: string;
   oldLineNum?: number;
   newLineNum?: number;
@@ -210,4 +210,5 @@ export interface ApiResponse<T> {
   data: T;
   latency: number;
   timestamp: string;
+  error?: string;
 }

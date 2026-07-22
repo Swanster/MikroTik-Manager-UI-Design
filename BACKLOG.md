@@ -169,10 +169,11 @@
 | G-01 | **Test suite** | 🔴 Missing | No unit, integration, or e2e tests |
 | G-02 | **tsconfig.json** | 🔴 Missing | TypeScript without strict config |
 | G-03 | **ESLint + Prettier** | 🔴 Missing | No code quality tooling |
-| G-04 | **CI/CD pipeline** | 🔴 Missing | No GitHub Actions or equivalent |
+| G-04 | **CI/CD pipeline** | ✅ Done | GitHub Actions configured for formatting, linting, testing, and building. |
 | G-05 | **Real RouterOS API** | 🟡 Future | Currently 100% mock |
-| G-06 | **react-router integration** | 🟡 Future | State-based nav, no URL routing |
-| G-07 | **Docker/deployment** | 🔴 Missing | No container or deployment config |
-| G-08 | **Dual UI framework** (MUI + Radix) | 🟡 Tech Debt | Should consolidate to one |
-| G-09 | **Inline styles → Tailwind** | 🟡 Tech Debt | Currently all inline styles |
-| G-10 | **TopBar `sectionTitles` missing `fleet`** | 🟡 Bug | Fleet view has no title in top bar |
+| G-06 | **react-router integration** | ✅ Done | State-based URL routing implemented in App.tsx. |
+| G-07 | **Docker/deployment** | ✅ Done | Multi-stage Dockerfile and Nginx configuration for SPA routing. |
+| G-08 | **Dual UI framework** (MUI + Radix) | ✅ Done | No MUI/Radix dependencies found. UI components are pure React+Tailwind. |
+| G-09 | **Inline styles → Tailwind** | ✅ Done | Phase 1 and Phase 2 (dynamic `t.*` theme styles mapped via `@theme inline`) complete. |
+| G-10 | **TopBar `sectionTitles` missing `fleet`** | ✅ Done | Already fixed in previous phase (fleet exists in sectionTitles). |
+| G-12 | **Mock-first mode** | ✅ Done | Configured via `VITE_USE_MOCK` in `.env.example` & `apiSelector.ts`. |

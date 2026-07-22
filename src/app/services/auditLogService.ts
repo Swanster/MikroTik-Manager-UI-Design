@@ -1,4 +1,4 @@
-import type { AuditEntry, AuditAction, AuditResult } from "./types";
+import type { AuditEntry, AuditAction, AuditResult } from './types';
 
 let auditLog: AuditEntry[] = [];
 let nextId = 1;
@@ -8,7 +8,7 @@ function generateId(): string {
 }
 
 function timestamp(): string {
-  return new Date().toISOString().replace("T", " ").substring(0, 23);
+  return new Date().toISOString().replace('T', ' ').substring(0, 23);
 }
 
 export function logAuditEntry(
@@ -16,7 +16,7 @@ export function logAuditEntry(
   target: string,
   result: AuditResult,
   detail: string,
-  risk: "Low" | "Medium" | "High" = "Low",
+  risk: 'Low' | 'Medium' | 'High' = 'Low',
 ): AuditEntry {
   const entry: AuditEntry = {
     id: generateId(),

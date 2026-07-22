@@ -1,6 +1,6 @@
-import React from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
-import { getTheme } from "./theme";
+import React from 'react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { getTheme } from './theme';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -14,20 +14,20 @@ interface ErrorBoundaryState {
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, message: "" };
+  state: ErrorBoundaryState = { hasError: false, message: '' };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, message: error.message || "Unknown UI error" };
+    return { hasError: true, message: error.message || 'Unknown UI error' };
   }
 
   componentDidUpdate(prevProps: ErrorBoundaryProps) {
     if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
-      this.setState({ hasError: false, message: "" });
+      this.setState({ hasError: false, message: '' });
     }
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("MikroTik Manager UI boundary caught error", { error, info });
+    console.error('MikroTik Manager UI boundary caught error', { error, info });
   }
 
   render() {
@@ -37,45 +37,47 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     return (
       <div
         style={{
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           padding: 24,
-          background: t.bg,
-          color: t.text,
+
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
+        className="bg-t-bg text-t-text"
       >
         <div
           style={{
             maxWidth: 560,
-            width: "100%",
-            background: t.surface,
-            border: `1px solid ${t.border}`,
+            width: '100%',
+
             borderRadius: 12,
             boxShadow: t.shadow,
             padding: 22,
           }}
+          className="bg-t-surface border border-t-border"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <div
               style={{
                 width: 34,
                 height: 34,
                 borderRadius: 9,
-                background: t.redBg,
-                color: t.red,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
+              className="bg-t-red-bg text-t-red"
             >
               <AlertTriangle size={18} />
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700 }}>View failed safely</div>
-              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>No device command was executed.</div>
+              <div style={{ fontSize: 12, marginTop: 2 }} className="text-t-text-muted">
+                No device command was executed.
+              </div>
             </div>
           </div>
           <div
@@ -83,32 +85,32 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               marginTop: 12,
               padding: 12,
               borderRadius: 8,
-              background: t.surface2,
-              border: `1px solid ${t.border}`,
-              color: t.textMuted,
+
               fontSize: 12,
               lineHeight: 1.6,
             }}
+            className="bg-t-surface2 border border-t-border text-t-text-muted"
           >
             {this.state.message}
           </div>
           <button
-            onClick={() => this.setState({ hasError: false, message: "" })}
+            onClick={() => this.setState({ hasError: false, message: '' })}
             style={{
               marginTop: 14,
-              display: "inline-flex",
-              alignItems: "center",
+              display: 'inline-flex',
+              alignItems: 'center',
               gap: 7,
-              padding: "8px 12px",
+              padding: '8px 12px',
               borderRadius: 8,
-              background: t.accent,
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
+
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
               fontSize: 12,
               fontWeight: 700,
-              fontFamily: "inherit",
+              fontFamily: 'inherit',
             }}
+            className="bg-t-accent"
           >
             <RotateCcw size={13} />
             Reset view

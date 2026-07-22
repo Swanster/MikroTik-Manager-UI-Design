@@ -41,13 +41,7 @@ describe('EmptyState', () => {
   });
 
   it('renders action when provided', () => {
-    render(
-      <EmptyState
-        isDark={true}
-        title="Empty"
-        action={<button>Add Device</button>}
-      />,
-    );
+    render(<EmptyState isDark={true} title="Empty" action={<button>Add Device</button>} />);
     expect(screen.getByRole('button', { name: /add device/i })).toBeInTheDocument();
   });
 

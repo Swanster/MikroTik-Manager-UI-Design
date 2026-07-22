@@ -21,6 +21,15 @@ function figmaAssetResolver(): FigmaResolverPlugin {
 }
 
 export default defineConfig({
+  server: {
+    proxy: {
+      '/rest': {
+        target: process.env.VITE_ROUTEROS_HOST || 'https://192.168.88.1',
+        changeOrigin: true,
+        secure: false, // Ignore self-signed certs for RouterOS
+      },
+    },
+  },
   plugins: [
     figmaAssetResolver(),
     react(),

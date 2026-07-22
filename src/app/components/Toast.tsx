@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect, createContext, useContext, useRef } from "react";
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from "lucide-react";
-import { getTheme } from "./theme";
+import { useState, useCallback, useEffect, createContext, useContext, useRef } from 'react';
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { getTheme } from './theme';
 
-export type ToastType = "success" | "error" | "warning" | "info";
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
   id: string;
@@ -22,7 +22,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function useToast() {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within ToastProvider");
+  if (!ctx) throw new Error('useToast must be used within ToastProvider');
   return ctx;
 }
 
@@ -63,12 +63,12 @@ function ToastContainer({
   return (
     <div
       style={{
-        position: "fixed",
+        position: 'fixed',
         bottom: 16,
         right: 16,
         zIndex: 9999,
-        display: "flex",
-        flexDirection: "column",
+        display: 'flex',
+        flexDirection: 'column',
         gap: 8,
         maxWidth: 360,
         fontFamily: "'Inter', -apple-system, sans-serif",
@@ -93,10 +93,10 @@ function ToastItem({ toast, isDark, onClose }: { toast: Toast; isDark: boolean; 
   };
 
   const bgMap = {
-    success: isDark ? "rgba(34,197,94,0.12)" : "#ECFDF5",
-    error: isDark ? "rgba(239,68,68,0.12)" : "#FEF2F2",
-    warning: isDark ? "rgba(245,158,11,0.12)" : "#FFFBEB",
-    info: isDark ? "rgba(47,111,237,0.12)" : "#EEF3FD",
+    success: isDark ? 'rgba(34,197,94,0.12)' : '#ECFDF5',
+    error: isDark ? 'rgba(239,68,68,0.12)' : '#FEF2F2',
+    warning: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB',
+    info: isDark ? 'rgba(47,111,237,0.12)' : '#EEF3FD',
   };
 
   const borderMap = {
@@ -119,32 +119,44 @@ function ToastItem({ toast, isDark, onClose }: { toast: Toast; isDark: boolean; 
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "flex-start",
+        display: 'flex',
+        alignItems: 'flex-start',
         gap: 10,
-        padding: "12px 14px",
+        padding: '12px 14px',
         background: bgMap[toast.type],
         border: `1px solid ${borderMap[toast.type]}`,
         borderRadius: 10,
-        boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.4)" : "0 4px 16px rgba(0,0,0,0.1)",
+        boxShadow: isDark ? '0 4px 16px rgba(0,0,0,0.4)' : '0 4px 16px rgba(0,0,0,0.1)',
         opacity: exiting ? 0 : 1,
-        transform: exiting ? "translateX(100%)" : "translateX(0)",
-        transition: "all 0.2s ease",
+        transform: exiting ? 'translateX(100%)' : 'translateX(0)',
+        transition: 'all 0.2s ease',
       }}
     >
       <div style={{ flexShrink: 0, marginTop: 1 }}>{iconMap[toast.type]}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: t.text }}>{toast.title}</div>
+        <div style={{ fontSize: 12, fontWeight: 600 }} className="text-t-text">
+          {toast.title}
+        </div>
         {toast.message && (
-          <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2, lineHeight: 1.4 }}>{toast.message}</div>
+          <div style={{ fontSize: 11, marginTop: 2, lineHeight: 1.4 }} className="text-t-text-muted">
+            {toast.message}
+          </div>
         )}
       </div>
       <button
-        onClick={() => { setExiting(true); setTimeout(onClose, 200); }}
-        style={{
-          flexShrink: 0, background: "none", border: "none", cursor: "pointer",
-          color: t.textMuted, padding: 2, display: "flex",
+        onClick={() => {
+          setExiting(true);
+          setTimeout(onClose, 200);
         }}
+        style={{
+          flexShrink: 0,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 2,
+          display: 'flex',
+        }}
+        className="text-t-text-muted"
       >
         <X size={12} />
       </button>

@@ -1,17 +1,29 @@
-import { LayoutDashboard, Server, Settings, FileCode, ScrollText, Wrench, Wifi, ChevronRight, ChevronLeft, PlusCircle, Radar } from "lucide-react";
-import type { NavItem } from "../types";
-import { DEVICE_PROFILES } from "../services/mockRouterOSApi";
+import {
+  LayoutDashboard,
+  Server,
+  Settings,
+  FileCode,
+  ScrollText,
+  Wrench,
+  Wifi,
+  ChevronRight,
+  ChevronLeft,
+  PlusCircle,
+  Radar,
+} from 'lucide-react';
+import type { NavItem } from '../types';
+import { DEVICE_PROFILES } from '../services/mockRouterOSApi';
 
 const navItems = [
-  { id: "dashboard" as NavItem, label: "Dashboard", icon: LayoutDashboard },
-  { id: "fleet" as NavItem, label: "Fleet", icon: Radar },
-  { id: "devices" as NavItem, label: "Devices", icon: Server },
-  { id: "connect" as NavItem, label: "Add Device", icon: PlusCircle },
-  { id: "wifi-settings" as NavItem, label: "Wi-Fi Settings", icon: Wifi },
-  { id: "config" as NavItem, label: "Config", icon: FileCode },
-  { id: "logs" as NavItem, label: "Logs", icon: ScrollText },
-  { id: "troubleshoot" as NavItem, label: "Troubleshoot", icon: Wrench },
-  { id: "settings" as NavItem, label: "Settings", icon: Settings },
+  { id: 'dashboard' as NavItem, label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'fleet' as NavItem, label: 'Fleet', icon: Radar },
+  { id: 'devices' as NavItem, label: 'Devices', icon: Server },
+  { id: 'connect' as NavItem, label: 'Add Device', icon: PlusCircle },
+  { id: 'wifi-settings' as NavItem, label: 'Wi-Fi Settings', icon: Wifi },
+  { id: 'config' as NavItem, label: 'Config', icon: FileCode },
+  { id: 'logs' as NavItem, label: 'Logs', icon: ScrollText },
+  { id: 'troubleshoot' as NavItem, label: 'Troubleshoot', icon: Wrench },
+  { id: 'settings' as NavItem, label: 'Settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -23,9 +35,17 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-export function Sidebar({ activeNav, setActiveNav, isDark, activeDeviceId, collapsed = false, onToggleCollapse }: SidebarProps) {
+export function Sidebar({
+  activeNav,
+  setActiveNav,
+  isDark,
+  activeDeviceId,
+  collapsed = false,
+  onToggleCollapse,
+}: SidebarProps) {
   const activeDevice = DEVICE_PROFILES.find((d) => d.id === activeDeviceId) ?? DEVICE_PROFILES[0];
-  const statusColor = activeDevice.status === "online" ? "#22C55E" : activeDevice.status === "warning" ? "#F59E0B" : "#EF4444";
+  const statusColor =
+    activeDevice.status === 'online' ? '#22C55E' : activeDevice.status === 'warning' ? '#F59E0B' : '#EF4444';
 
   return (
     <div
@@ -37,18 +57,14 @@ export function Sidebar({ activeNav, setActiveNav, isDark, activeDeviceId, colla
       >
         <div
           className="w-[30px] h-[30px] rounded-lg flex items-center justify-center shadow-[0_2px_8px_rgba(47,111,237,0.35)] shrink-0"
-          style={{ background: "linear-gradient(135deg, #2F6FED 0%, #1A5BD9 100%)" }}
+          style={{ background: 'linear-gradient(135deg, #2F6FED 0%, #1A5BD9 100%)' }}
         >
           <Wifi size={15} color="white" />
         </div>
         {!collapsed && (
           <div>
-            <div className="text-foreground text-[13px] font-semibold leading-[1.3]">
-              MikroTik
-            </div>
-            <div className="text-text-muted text-[10px] leading-[1.2] font-normal">
-              Manager
-            </div>
+            <div className="text-foreground text-[13px] font-semibold leading-[1.3]">MikroTik</div>
+            <div className="text-text-muted text-[10px] leading-[1.2] font-normal">Manager</div>
           </div>
         )}
       </div>
@@ -56,9 +72,7 @@ export function Sidebar({ activeNav, setActiveNav, isDark, activeDeviceId, colla
       {/* Nav label */}
       {!collapsed && (
         <div className="px-4 pt-3.5 pb-1.5">
-          <span className="text-text-subtle text-[10px] font-semibold tracking-[0.08em] uppercase">
-            Navigation
-          </span>
+          <span className="text-text-subtle text-[10px] font-semibold tracking-[0.08em] uppercase">Navigation</span>
         </div>
       )}
 
@@ -81,16 +95,14 @@ export function Sidebar({ activeNav, setActiveNav, isDark, activeDeviceId, colla
       </div>
 
       {/* Footer — Active Device */}
-      <div
-        className={`${collapsed ? 'py-3 px-2' : 'py-3 px-4'} border-t border-border`}
-      >
+      <div className={`${collapsed ? 'py-3 px-2' : 'py-3 px-4'} border-t border-border`}>
         {collapsed ? (
           <div className="flex justify-center">
             <div
               className="w-1.5 h-1.5 rounded-full"
               style={{
                 background: statusColor,
-                boxShadow: activeDevice.status === "online" ? `0 0 6px ${statusColor}` : "none",
+                boxShadow: activeDevice.status === 'online' ? `0 0 6px ${statusColor}` : 'none',
               }}
             />
           </div>
@@ -101,14 +113,15 @@ export function Sidebar({ activeNav, setActiveNav, isDark, activeDeviceId, colla
                 className="w-1.5 h-1.5 rounded-full"
                 style={{
                   background: statusColor,
-                  boxShadow: activeDevice.status === "online" ? `0 0 6px ${statusColor}` : "none",
+                  boxShadow: activeDevice.status === 'online' ? `0 0 6px ${statusColor}` : 'none',
                 }}
               />
-              <span className="text-foreground text-[11px] font-semibold">
-                {activeDevice.name}
-              </span>
+
+              <span className="text-foreground text-[11px] font-semibold">{activeDevice.name}</span>
             </div>
-            <div className="text-text-subtle text-[10px]">{activeDevice.model} · {activeDevice.ip}</div>
+            <div className="text-text-subtle text-[10px]">
+              {activeDevice.model} · {activeDevice.ip}
+            </div>
             <div className="text-text-subtle text-[10px] mt-0.5">RouterOS v{activeDevice.version}</div>
             <div className="text-text-subtle text-[10px] mt-0.5">MikroTik Manager v1.2.0</div>
           </>

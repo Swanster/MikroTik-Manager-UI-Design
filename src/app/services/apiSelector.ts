@@ -10,10 +10,10 @@
  *   3. Remove mockRouterOSApi.ts once real API covers all endpoints
  */
 
-import * as mockApi from "./mockRouterOSApi";
-import * as realApi from "./routerOSApi";
+import * as mockApi from './mockRouterOSApi';
+import * as realApi from './routerOSApi';
 
-const USE_MOCK = true; // Set false to use real RouterOS REST API
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'; // Defaults to true (Mock-first mode)
 
 export const api = USE_MOCK ? mockApi : realApi;
 
@@ -35,8 +35,6 @@ export const {
   setErrorRate,
   setTimeoutRate,
   DEVICE_PROFILES,
-  DEVICE_CONFIGS,
-  BACKUP_SNAPSHOTS,
 } = api;
 
-export { setApiBaseUrl } from "./routerOSApi";
+export { setApiBaseUrl } from './routerOSApi';

@@ -1,48 +1,26 @@
-# Stage 1: Build
-FROM node:22-alpine AS builder
+# Stage 1: Build the React application
+FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-# Copy dependency manifests
+# Install dependencies
 COPY package.json package-lock.json ./
-
-# Install dependencies (ci = clean install from lockfile)
 RUN npm ci
 
-# Copy source code
+# Copy source code and build
 COPY . .
-
-# Build production bundle
 RUN npm run build
 
-# Stage 2: Serve
-FROM nginx:stable-alpine AS runner
+# Stage 2: Serve the static files with Nginx
+FROM nginx:alpine
 
-# Copy nginx config
-COPY <<'EOF' /etc/nginx/conf.d/default.conf
-server {
-    listen       80;
-    server_name  localhost;
-    root         /usr/share/nginx/html;
-    index        index.html;
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
 
-    # Gzip
-    gzip on;
-    gzip_types text/css application/javascript text/html;
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/
 
-    # SPA fallback
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-EOF
-
-# Copy build output from builder stage
+# Copy the build output
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80

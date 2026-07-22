@@ -1,4 +1,4 @@
-import type { QueuedCommand, CommandStatus } from "./types";
+import type { QueuedCommand, CommandStatus } from './types';
 
 let queue: QueuedCommand[] = [];
 let nextId = 1;
@@ -8,20 +8,16 @@ function generateId(): string {
 }
 
 function timestamp(): string {
-  return new Date().toISOString().replace("T", " ").substring(0, 23);
+  return new Date().toISOString().replace('T', ' ').substring(0, 23);
 }
 
-export function addToQueue(
-  command: string,
-  source: string,
-  risk: "Low" | "Medium" | "High" = "Medium",
-): QueuedCommand {
+export function addToQueue(command: string, source: string, risk: 'Low' | 'Medium' | 'High' = 'Medium'): QueuedCommand {
   const entry: QueuedCommand = {
     id: generateId(),
     command,
     source,
     risk,
-    status: "pending",
+    status: 'pending',
     createdAt: timestamp(),
   };
   queue = [...queue, entry];
@@ -31,7 +27,7 @@ export function addToQueue(
 export function addBatchToQueue(
   commands: string[],
   source: string,
-  risk: "Low" | "Medium" | "High" = "Medium",
+  risk: 'Low' | 'Medium' | 'High' = 'Medium',
 ): QueuedCommand[] {
   return commands.map((cmd) => addToQueue(cmd, source, risk));
 }
@@ -45,33 +41,27 @@ export function getQueueByStatus(status: CommandStatus): QueuedCommand[] {
 }
 
 export function getPendingCount(): number {
-  return queue.filter((c) => c.status === "pending").length;
+  return queue.filter((c) => c.status === 'pending').length;
 }
 
 export function approveCommand(id: string): QueuedCommand | null {
   const idx = queue.findIndex((c) => c.id === id);
   if (idx === -1) return null;
-  queue = queue.map((c, i) =>
-    i === idx ? { ...c, status: "approved" as const, approvedAt: timestamp() } : c,
-  );
+  queue = queue.map((c, i) => (i === idx ? { ...c, status: 'approved' as const, approvedAt: timestamp() } : c));
   return queue[idx];
 }
 
 export function rejectCommand(id: string): QueuedCommand | null {
   const idx = queue.findIndex((c) => c.id === id);
   if (idx === -1) return null;
-  queue = queue.map((c, i) =>
-    i === idx ? { ...c, status: "rejected" as const, rejectedAt: timestamp() } : c,
-  );
+  queue = queue.map((c, i) => (i === idx ? { ...c, status: 'rejected' as const, rejectedAt: timestamp() } : c));
   return queue[idx];
 }
 
 export function markApplied(id: string): QueuedCommand | null {
   const idx = queue.findIndex((c) => c.id === id);
   if (idx === -1) return null;
-  queue = queue.map((c, i) =>
-    i === idx ? { ...c, status: "applied" as const, appliedAt: timestamp() } : c,
-  );
+  queue = queue.map((c, i) => (i === idx ? { ...c, status: 'applied' as const, appliedAt: timestamp() } : c));
   return queue[idx];
 }
 
@@ -86,5 +76,5 @@ export function clearQueue(): void {
 }
 
 export function clearCompleted(): void {
-  queue = queue.filter((c) => c.status === "pending");
+  queue = queue.filter((c) => c.status === 'pending');
 }

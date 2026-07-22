@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { X, Save, Trash2, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { getTheme } from "./theme";
-import type { DeviceProfile } from "../services/types";
+import { useState } from 'react';
+import { X, Save, Trash2, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { getTheme } from './theme';
+import type { DeviceProfile } from '../services/types';
 
-type ModalMode = "edit" | "remove";
+type ModalMode = 'edit' | 'remove';
 
 interface DeviceModalProps {
   isDark: boolean;
   mode: ModalMode;
   device: DeviceProfile;
-  onSave?: (patch: Partial<Pick<DeviceProfile, "name" | "ip" | "model" | "location" | "status" | "version">>) => void;
+  onSave?: (patch: Partial<Pick<DeviceProfile, 'name' | 'ip' | 'model' | 'location' | 'status' | 'version'>>) => void;
   onRemove?: () => void;
   onClose: () => void;
 }
@@ -26,11 +26,11 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
   const [status, setStatus] = useState(device.status);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
+  const [confirmText, setConfirmText] = useState('');
   const [done, setDone] = useState(false);
 
-  const isEdit = mode === "edit";
-  const isRemove = mode === "remove";
+  const isEdit = mode === 'edit';
+  const isRemove = mode === 'remove';
   const confirmEnabled = confirmText === device.name;
 
   function handleSave() {
@@ -54,87 +54,74 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
   }
 
   const inputBase: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", background: t.surface2,
-    border: `1px solid ${t.border}`, borderRadius: 8, color: t.text,
-    fontSize: 13, fontFamily: ui, outline: "none", transition: "border-color 0.12s",
-    boxSizing: "border-box",
+    width: '100%',
+    padding: '9px 12px',
+    background: t.surface2,
+    border: `1px solid ${t.border}`,
+    borderRadius: 8,
+    color: t.text,
+    fontSize: 13,
+    fontFamily: ui,
+    outline: 'none',
+    transition: 'border-color 0.12s',
+    boxSizing: 'border-box',
   };
 
   const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 600, color: t.textMuted,
-    marginBottom: 5, letterSpacing: "0.04em", textTransform: "uppercase",
+    display: 'block',
+    fontSize: 11,
+    fontWeight: 600,
+    color: t.textMuted,
+    marginBottom: 5,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
   };
 
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
-      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[480px] rounded-2xl overflow-hidden bg-t-surface border border-t-border"
         style={{
-          width: "100%", maxWidth: 480, background: t.surface,
-          border: `1px solid ${t.border}`, borderRadius: 14,
-          boxShadow: isDark
-            ? "0 16px 48px rgba(0,0,0,0.6)"
-            : "0 16px 48px rgba(0,0,0,0.15)",
-          overflow: "hidden",
+          boxShadow: isDark ? '0 16px 48px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)',
         }}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: "18px 22px", borderBottom: `1px solid ${t.border}`,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="flex items-center justify-between py-[18px] px-[22px] border-b border-t-border">
+          <div className="flex items-center gap-2.5">
             <div
+              className="flex items-center justify-center w-[34px] h-[34px] rounded-[9px]"
               style={{
-                width: 34, height: 34, borderRadius: 9,
                 background: isRemove
-                  ? "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)"
-                  : "linear-gradient(135deg, #2F6FED 0%, #1A5BD9 100%)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: isRemove
-                  ? "0 2px 8px rgba(239,68,68,0.4)"
-                  : "0 2px 8px rgba(47,111,237,0.4)",
+                  ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
+                  : 'linear-gradient(135deg, #2F6FED 0%, #1A5BD9 100%)',
+                boxShadow: isRemove ? '0 2px 8px rgba(239,68,68,0.4)' : '0 2px 8px rgba(47,111,237,0.4)',
               }}
             >
-              {isRemove
-                ? <Trash2 size={15} color="white" />
-                : <CheckCircle2 size={15} color="white" />
-              }
+              {isRemove ? <Trash2 size={15} color="white" /> : <CheckCircle2 size={15} color="white" />}
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>
-                {isEdit ? "Edit Device" : "Remove Device"}
-              </div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginTop: 1 }}>
+              <div className="text-sm font-bold text-t-text">{isEdit ? 'Edit Device' : 'Remove Device'}</div>
+              <div className="text-[11px] mt-[1px] text-t-text-muted">
                 {isEdit ? `Editing ${device.name}` : `Permanently remove ${device.name}`}
               </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{
-              width: 28, height: 28, borderRadius: 7, border: `1px solid ${t.border}`,
-              background: "transparent", display: "flex", alignItems: "center",
-              justifyContent: "center", cursor: "pointer", color: t.textMuted,
-            }}
+            className="flex items-center justify-center w-[28px] h-[28px] rounded-[7px] bg-transparent cursor-pointer border border-t-border text-t-text-muted"
           >
             <X size={14} />
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ padding: "20px 22px" }}>
+        <div className="py-5 px-[22px]">
           {isEdit && !done && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="flex flex-col gap-3.5">
               <div>
                 <label style={labelStyle}>Device Name</label>
                 <input
@@ -145,7 +132,7 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
                   onBlur={(e) => (e.target.style.borderColor = t.border)}
                 />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label style={labelStyle}>IP Address</label>
                   <input
@@ -160,8 +147,8 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
                   <label style={labelStyle}>Status</label>
                   <select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as DeviceProfile["status"])}
-                    style={{ ...inputBase, cursor: "pointer" }}
+                    onChange={(e) => setStatus(e.target.value as DeviceProfile['status'])}
+                    style={{ ...inputBase, cursor: 'pointer' }}
                   >
                     <option value="online">Online</option>
                     <option value="warning">Warning</option>
@@ -169,7 +156,7 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
                   </select>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label style={labelStyle}>Model</label>
                   <input
@@ -192,15 +179,14 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
                 </div>
               </div>
               <div
+                className="flex items-center gap-2 py-[9px] px-[11px] rounded-[8px]"
                 style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "9px 11px", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB",
-                  border: `1px solid ${isDark ? "rgba(251,191,36,0.22)" : "rgba(251,191,36,0.3)"}`,
-                  borderRadius: 8,
+                  background: isDark ? 'rgba(251,191,36,0.08)' : '#FFFBEB',
+                  border: `1px solid ${isDark ? 'rgba(251,191,36,0.22)' : 'rgba(251,191,36,0.3)'}`,
                 }}
               >
-                <AlertTriangle size={13} color={t.amber} style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: t.amberText, lineHeight: 1.4 }}>
+                <AlertTriangle size={13} color={t.amber} className="shrink-0" />
+                <span className="text-[11px] leading-[1.4] text-t-amber-text">
                   Changes are saved to the local profile. Reconnect to the device to sync.
                 </span>
               </div>
@@ -208,40 +194,37 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
           )}
 
           {isRemove && !done && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div
-                style={{
-                  display: "flex", alignItems: "flex-start", gap: 10,
-                  padding: "12px 14px", background: t.redBg,
-                  border: `1px solid ${t.red}33`, borderRadius: 10,
-                }}
-              >
-                <AlertTriangle size={15} color={t.red} style={{ marginTop: 1, flexShrink: 0 }} />
+            <div className="flex flex-col gap-3.5">
+              <div className="flex items-start gap-2.5 py-3 px-3.5 rounded-[10px] bg-t-red-bg border border-t-red">
+                <AlertTriangle size={15} color={t.red} className="mt-[1px] shrink-0" />
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t.redText }}>
-                    This action cannot be undone
-                  </div>
-                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3, lineHeight: 1.4 }}>
-                    The device profile and all associated data (logs, config, diagnostics) will be permanently removed from this manager.
+                  <div className="text-xs font-semibold text-t-red-text">This action cannot be undone</div>
+                  <div className="text-[11px] mt-[3px] leading-[1.4] text-t-text-muted">
+                    The device profile and all associated data (logs, config, diagnostics) will be permanently removed
+                    from this manager.
                   </div>
                 </div>
               </div>
 
-              <div
-                style={{
-                  padding: "12px 14px", background: t.surface2,
-                  border: `1px solid ${t.border}`, borderRadius: 10,
-                }}
-              >
-                <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", gap: "6px 12px", fontSize: 11 }}>
-                  <span style={{ color: t.textMuted }}>Name</span>
-                  <span style={{ color: t.text, fontWeight: 500 }}>{device.name}</span>
-                  <span style={{ color: t.textMuted }}>IP</span>
-                  <span style={{ color: t.accent, fontFamily: mono }}>{device.ip}</span>
-                  <span style={{ color: t.textMuted }}>Model</span>
-                  <span style={{ color: t.text, fontFamily: mono }}>{device.model}</span>
-                  <span style={{ color: t.textMuted }}>Status</span>
-                  <span style={{ color: device.status === "online" ? t.green : device.status === "warning" ? t.amber : t.red, textTransform: "capitalize" }}>
+              <div className="py-3 px-3.5 rounded-[10px] bg-t-surface2 border border-t-border">
+                <div className="grid grid-cols-[80px_1fr] gap-y-1.5 gap-x-3 text-[11px]">
+                  <span className="text-t-text-muted">Name</span>
+                  <span className="font-medium text-t-text">{device.name}</span>
+                  <span className="text-t-text-muted">IP</span>
+                  <span style={{ fontFamily: mono }} className="text-t-accent">
+                    {device.ip}
+                  </span>
+                  <span className="text-t-text-muted">Model</span>
+                  <span style={{ fontFamily: mono }} className="text-t-text">
+                    {device.model}
+                  </span>
+                  <span className="text-t-text-muted">Status</span>
+                  <span
+                    className="capitalize"
+                    style={{
+                      color: device.status === 'online' ? t.green : device.status === 'warning' ? t.amber : t.red,
+                    }}
+                  >
                     {device.status}
                   </span>
                 </div>
@@ -249,7 +232,7 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
 
               <div>
                 <label style={labelStyle}>
-                  Type <span style={{ color: t.red }}>"{device.name}"</span> to confirm
+                  Type <span className="text-t-red">"{device.name}"</span> to confirm
                 </label>
                 <input
                   value={confirmText}
@@ -268,13 +251,13 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
 
           {/* Success state */}
           {done && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <CheckCircle2 size={36} color={t.green} style={{ marginBottom: 10 }} />
-              <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>
-                {isEdit ? "Device updated" : "Device removed"}
+            <div className="text-center py-5">
+              <CheckCircle2 size={36} color={t.green} className="mb-2.5" />
+              <div className="text-[13px] font-semibold text-t-text">
+                {isEdit ? 'Device updated' : 'Device removed'}
               </div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4 }}>
-                {isEdit ? "Changes saved successfully" : `${device.name} has been removed`}
+              <div className="text-[11px] mt-1 text-t-text-muted">
+                {isEdit ? 'Changes saved successfully' : `${device.name} has been removed`}
               </div>
             </div>
           )}
@@ -282,17 +265,11 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
 
         {/* Footer */}
         {!done && (
-          <div
-            style={{
-              padding: "14px 22px", borderTop: `1px solid ${t.border}`,
-              display: "flex", justifyContent: "flex-end", gap: 8,
-            }}
-          >
+          <div className="flex justify-end gap-2 py-3.5 px-[22px] border-t border-t-border">
             <button
               onClick={onClose}
+              className="px-3.5 py-2 rounded-[7px] text-xs cursor-pointer bg-t-surface2 border border-t-border text-t-text-muted"
               style={{
-                padding: "8px 14px", background: t.surface2, border: `1px solid ${t.border}`,
-                borderRadius: 7, color: t.textMuted, fontSize: 12, cursor: "pointer",
                 fontFamily: ui,
               }}
             >
@@ -302,35 +279,31 @@ export function DeviceModal({ isDark, mode, device, onSave, onRemove, onClose }:
               <button
                 onClick={handleSave}
                 disabled={saving}
+                className="flex items-center gap-1.5 py-2 px-4 border-0 rounded-[7px] text-white text-xs font-medium bg-t-accent"
                 style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 16px", background: t.accent, border: "none",
-                  borderRadius: 7, color: "white", fontSize: 12, fontWeight: 500,
-                  cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1,
+                  cursor: saving ? 'default' : 'pointer',
+                  opacity: saving ? 0.7 : 1,
                   fontFamily: ui,
                 }}
               >
                 {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
             )}
             {isRemove && (
               <button
                 onClick={handleRemove}
                 disabled={!confirmEnabled || removing}
+                className="flex items-center gap-1.5 py-2 px-4 border-0 rounded-[7px] text-white text-xs font-medium"
                 style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 16px",
                   background: confirmEnabled ? t.red : `${t.red}40`,
-                  border: "none", borderRadius: 7, color: "white", fontSize: 12,
-                  fontWeight: 500,
-                  cursor: confirmEnabled && !removing ? "pointer" : "default",
+                  cursor: confirmEnabled && !removing ? 'pointer' : 'default',
                   opacity: confirmEnabled ? 1 : 0.5,
                   fontFamily: ui,
                 }}
               >
                 {removing ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                {removing ? "Removing..." : "Remove Device"}
+                {removing ? 'Removing...' : 'Remove Device'}
               </button>
             )}
           </div>
